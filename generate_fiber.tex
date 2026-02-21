@@ -1,0 +1,93 @@
+\subsubsection{\textbf{算法概述、流程与关键参数}}
+
+本节在 2.1 给出的计算域 $\Omega$、状态函数 $S(\textbf x)$、孔隙率目标约束 $|\varepsilon - \varepsilon_{\textbf{target}}| \le \delta_{\varepsilon}$ 的基础上，构建一种面向 GDL 的分层随机纤维生成算法，用于生成纤维相体素集合 $V_{\textbf{fiber}}$。算法以“逐根生成——判定——写入”的迭代方式进行：每次迭代采样候选纤维的中心位置，方向与长度并进行边界裁剪；允许重叠时直接体素化写入，禁止重叠时先进行碰撞检测，通过后写入；每次写入后更新当前孔隙率 $\varepsilon$，当满足目标约束或达到最大尝试次数时终止。
+具体的算法流程如下所示：
+
+% 将流程图以内嵌方式显示（非浮动），避免被 LaTeX 浮动机制推到别处或造成两栏不平衡的大空白 
+\begin{center} % 将流程图限制在单栏宽度内并在必要时缩放 
+  \begin{adjustbox}{max width=\columnwidth,center} 
+    \begin{tikzpicture}[ 
+      node distance=5mm and 10mm,
+      font=\scriptsize, 
+      startstop/.style={rectangle, rounded corners, draw, fill=white, align=center, text width=26mm, inner sep=3pt, minimum height=6mm}, 
+      process/.style={rectangle, draw, fill=white, align=center, text width=30mm, inner sep=3pt, minimum height=6mm}, decision/.style={diamond, aspect=2.1, draw, fill=white, align=center, text width=28mm, inner sep=1.5pt}, arrow/.style={-Latex, line width=0.6pt} ] 
+      \node (start) [startstop] {开始}; 
+      \node (init) [process, below=of start] {初始化：$S(x)=0$，纤维列表为空\\计算当前孔隙率 $\varepsilon$}; 
+      \node (stopq) [decision, below=of init, yshift=-2mm] {是否满足停止条件？\\$|\varepsilon-\varepsilon_{\text{target}}|\le\delta_\varepsilon$\\或 tries 达上限}; 
+      \node (out) [startstop, right=of stopq, xshift=12mm] {输出：$S(x)$ 与纤维列表}; 
+      \node (layer) [process, below=of stopq, yshift=-2mm] {选择层 $m$ 并采样中心 $c$\\（分层 + jitter）}; 
+      \node (ori) [process, below=of layer] {采样取向 $(\alpha,\beta)$\\得到方向向量 $u$}; 
+      \node (len) [process, below=of ori] {采样长度 $l\in[l_{\min},l_{\max}]$\\构造端点 $a,b$}; 
+      \node (clip) [process, below=of len] {边界裁剪（clipped）\\得到域内线段 $[a,b]$}; 
+      \node (over) [decision, below=of clip, yshift=-2mm] {是否允许重叠？}; 
+      \node (vox) [process, left=of over, xshift=-12mm] {体素化写入 $S(x)$\\记录纤维信息}; 
+      \node (coll) [process, right=of over, xshift=12mm] {碰撞检测（不重叠）\\分箱/AABB 预筛\\线段最小距离 $\ge 2r$}; 
+      \node (pass) [decision, below=of coll, yshift=-2mm] {检测通过？}; 
+      \node (adapt) [process, below=of pass] {失败计数+1\\局部 nudge / 自适应缩短 $l_{\max}$\\缓解 jamming}; 
+      \node (upd) [process, below=of vox] {更新孔隙率 $\varepsilon$}; 
+      \draw [arrow] (start) -- (init); 
+      \draw [arrow] (init) -- (stopq); 
+      \draw [arrow] (stopq) -- node[above] {是} (out); 
+      \draw [arrow] (stopq) -- node[left] {否} (layer); 
+      \draw [arrow] (layer) -- (ori); 
+      \draw [arrow] (ori) -- (len); 
+      \draw [arrow] (len) -- (clip); 
+      \draw [arrow] (clip) -- (over); 
+      \draw [arrow] (over) -- node[above] {允许} (vox); 
+      \draw [arrow] (over) -- node[above] {不允许} (coll); 
+      \draw [arrow] (coll) -- (pass); 
+      \draw [arrow] (pass) -- node[left] {是} (vox); 
+      \draw [arrow] (pass) -- node[left] {否} (adapt); 
+      % 从 adapt.west 出发：先向左一段，再向上对齐 stopq.south 的纵坐标，最后水平连到 stopq.south
+      \coordinate (adapt_left) at ($(adapt.west)+(-12mm,0)$);
+      \coordinate (adapt_left_up) at ($(adapt_left |- stopq.south)$);
+      \draw [arrow] (adapt.west) -- (adapt_left) -- (adapt_left_up) -- (stopq.south);
+      \draw [arrow] (vox) -- (upd); 
+      \draw [arrow] (upd.north) |- (stopq.west); 
+    \end{tikzpicture} 
+  \end{adjustbox} 
+  \captionof{figure}{分层随机纤维生成流程（含允许/不允许重叠分支与自适应防 jamming 策略）。} 
+  \label{fig:fiber_flowchart} 
+\end{center}
+分层随机纤维生成算法的主要参数如下：
+
+\begin{table}[htbp]
+\centering
+\begin{adjustbox}{max width=\columnwidth,center}
+\begin{tabular}{lll}
+\hline
+\textbf{符号/名称} & \textbf{含义} & \textbf{典型取值/范围} \\
+\hline
+$I,J,K$ & 体素域尺寸（第 2.1.1 节） & $155\times 300\times 300$ \\
+$r$ & 纤维半径（体素） & 例如 $r=3.5$ \\
+$l_{\min},l_{\max}$ & 纤维长度范围（体素） & 例如 $[140,320]$ \\
+$n_{\mathrm{layer}}$ & 厚度方向分层数 & 例如 $6\sim 11$ \\
+$\sigma_z$（jitter） & 层内厚度方向中心抖动 & 例如 $2\sim 5$ 体素 \\
+$\mu_{\alpha}^{(m)}$ & 第 $m$ 层的平面内平均主方向 & 给定/缓慢变化 \\
+$\sigma_\alpha$ & 平面内角度离散度（层内“凌乱”程度） & 例如 $40^\circ\sim 80^\circ$ \\
+$\sigma_\beta,\beta_{\max}$ & 离层倾角控制（贴层程度） & 例如 $\sigma_\beta=2^\circ\sim 5^\circ$ \\
+\texttt{overlap} & 是否允许重叠（Y/N） & Y / N \\
+\texttt{fiber\_end\_mode} & 端点边界处理方式 & clipped \\
+$\varepsilon_{\mathrm{target}}$ & 目标孔隙率（第 2.1.3 节） & 例如 $0.70\sim 0.85$ \\
+$\delta_\varepsilon$ & 孔隙率容差（停止阈值） & 例如 $10^{-4}\sim 10^{-3}$ \\
+\texttt{max\_tries} & 最大尝试次数（防止无限循环） & 依实现设定 \\
+\hline
+\end{tabular}
+\end{adjustbox}
+\caption{分层随机纤维生成算法的主要参数。}\label{tab:fiber_params_cn}
+\end{table}
+
+\subsubsection{\textbf{厚度方向分层建模与层内位置采样}}
+
+GDL 在厚度方向通常呈现\textbf{厚度方向层状堆叠}、\textbf{层内位置随机、乱中有序}的特征，本节主要通过分层建模与层内位置采样，来给每根纤维分配一个合理的厚度位置，并给它采样一个中心点 $c = (x,y,z)$。
+
+取计算域中最短的维度（通常是 $I$ 轴，对应实现中的 TP\_AXIS）作为厚度方向（through-plane），其余两维为面内方向（in-plane）。设厚度方向的长度为 $K_{\textbf{TP}}$，为贴近实际 GDL 的结构，我们将厚度方向划分为 $n_{\mathrm{layer}}$ 个连续的层（layer），那么每一层的厚度（层厚）为
+\[
+h = \dfrac{K_{\textbf{TP}}}{n_{\mathrm{layer}}}
+\]
+其中第 $m$ 层的中心位置为
+\[
+z_m = \left(m + \dfrac 1 2\right)h, \quad m=0,1,\ldots,n_{\mathrm{layer}}-1
+\]
+
+考虑如何对于每根碳棒纤维分配一个合理的厚度位置

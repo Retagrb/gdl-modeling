@@ -1,0 +1,68 @@
+为了能够在后续的建模和仿真中准确描述碳棒纤维与粘连剂（binder）的几何关系，本节首先给出计算域、变量定义与基本假设。我们在尺寸为 $I \times J \times K$ 的三维长方体离散体素域（3D voxel domain）$\Omega \subset \mathbb{Z}^3$ 中生成纤维（碳棒）多孔介质，$I,J,K$ 的具体值由实验样品的实际尺寸决定，除非特别说明，本文均以 $155 \times 300 \times 300$ 为例。
+
+\subsubsection{\textbf{纤维几何表示与体素化}}
+
+每根纤维被建模为一个圆柱体，具有固定的半径 $r$，其轴向长度 $l \in [l_{\min}, l_{\max}]$。本文用一条三维线段 $[\textbf a, \textbf b]$ 来表示每根纤维的中心轴线，其中 $\textbf a,\textbf b \in \mathbb{R}^3$ 分别表示中心轴线起点和终点的三维坐标。纤维固相体素集合记为 $V_{\textbf{fiber}}$。对任意体素索引 $\textbf{x} = (i,j,k) \in \Omega$，定义状态函数 $S(\textbf x)$ 来表示该体素是否被纤维占据：
+\[
+S(\textbf x) = 
+\begin{cases}
+1, & \textbf{x} \in V_{\textbf{fiber}}  \\
+0, & \textbf{x} \notin V_{\textbf{fiber}} 
+\end{cases}
+\]
+设计算域内体素总数为
+\[
+N = I \times J \times K
+\]
+当前纤维固相体素数为
+\[
+N_s = \sum \limits_{\textbf{x} \in \Omega} S(\textbf x) = \sum \limits_{i,j,k} S(i,j,k)
+\]
+
+\subsubsection{\textbf{binder 与孔隙相的定义}}
+
+为描述粘连剂分布，本文进一步定义 binder 体素集合 $V_{\textbf{binder}} \in \Omega$，以及对应的状态函数 $B(\textbf x)$：
+\[
+B(\textbf x) =
+\begin{cases}
+1, & \textbf{x} \in V_{\textbf{binder}}  \\
+0, & \textbf{x} \notin V_{\textbf{binder}} 
+\end{cases}
+\]
+相应地，孔隙体素集合定义为
+\[
+V_{\textbf{pore}} = \Omega \setminus (V_{\textbf{fiber}} \cup V_{\textbf{binder}}) = (V_{\textbf{fiber}} \cup V_{\textbf{binder}})^c
+\]
+其中 $(\cdot)^c$ 表示相对于 $\Omega$ 的补集，对应的状态函数为
+\[
+P(\textbf x) = 1 - S(\textbf x) - B(\textbf x)
+\]
+本文默认三相体素互斥，即 $V_{\textbf{fiber}} \cap V_{\textbf{binder}} = \emptyset$。据此，纤维体积分数 $\phi_{f}$、binder 体积分数 $\phi_{b}$ 和孔隙率 $\varepsilon$ 分别定义为：
+\[
+\begin{cases}
+\phi_{f} = \frac{1}{N} \sum \limits_{\textbf{x} \in \Omega} S(\textbf x) \\
+\phi_{b} = \frac{1}{N} \sum \limits_{\textbf{x} \in \Omega} B(\textbf x) \\
+\varepsilon = \frac{1}{N} \sum \limits_{\textbf{x} \in \Omega} P(\textbf x) = 1 - \phi_{f} - \phi_{b}
+\end{cases}
+\]
+当不考虑 binder 时，有 $\phi_{b} = 0$，于是孔隙率退化为 $\varepsilon = 1 - \phi_{f}$。
+
+\subsubsection{\textbf{建模目标与约束}}
+
+本文设定目标孔隙率为 $\varepsilon_{\textbf{target}}$，并（可选地）设定目标 binder 体积分数 $\phi_{b,\textbf{target}}$，以指导后续的纤维与 binder 生成过程。对于碳棒纤维，相应地，总固相体积分数满足
+\[
+\phi_{\textbf{solid,target}} = 1 - \varepsilon_{\textbf{target}} = \phi_{f} + \phi_{b}
+\]
+其对应地目标固相体素数为
+\[
+N_{\textbf{solid,target}} = \phi_{\textbf{solid,target}} \cdot N
+\]
+本文的建模目标是通过逐根生成碳棒纤维（以及随后生成 binder），同时考虑允许重叠和不重叠两种情况，使得最终孔隙率满足
+\[
+|\varepsilon - \varepsilon_{\textbf{target}}| \le \delta_{\varepsilon}
+\]
+等价地，使得总固相体素数逼近目标值
+\[
+N_s^{(\textbf{total})} = \sum \limits_{\textbf{x} \in \Omega} (S(\textbf x) + B(\textbf x)) \approx N_{\textbf{solid,target}}
+\]
+其中 $\delta_{\varepsilon}$ 是允许误差阈值。后续章节将分别给出重叠和不重叠两种情况下纤维几何的生成以及 binder 的生成的具体算法与实现细节。
