@@ -148,7 +148,7 @@ y \sim \mathcal{U}(0, I_{\textbf{IP2}})
 
 对于离层倾角 $\beta$ 的采样，我们同样使用一个截断高斯来控制纤维的贴层程度（即与厚度方向的夹角）。由于 GDL 的真实结构中纤维大多“躺在层平面内”，所以设定 $\beta$ 的均值为 $0^\circ$，表示纤维倾向于贴近层面。即 $\beta$ 满足正态分布
 \[
-\tlide\beta \sim \mathcal{N}(0, \sigma_\beta^2), \quad \beta = \text{clip}(\tilde\beta, -\beta_{\max}, \beta_{\max})
+\tilde\beta \sim \mathcal{N}(0, \sigma_\beta^2), \quad \beta = \text{clip}(\tilde\beta, -\beta_{\max}, \beta_{\max})
 \]
 其中 $\beta_{\max}$ 则限制了纤维的最大离层倾角，相当于是一个硬性约束。假设一根纤维的中心轴线长度为 $L$，与层平面的夹角为 $\beta$，那么应当满足
 \[
@@ -169,7 +169,7 @@ L_{\min} \sin\beta \le K_{\textbf{TP}}
 
 由上述分布得到的方向向量 $\textbf u$，结合前面采样得到的中心点 $\textbf c$，就可以唯一确定一根纤维的空间位置和方向。
 
-\subsubsection{\textbf{纤维长度与端点处理}}
+\subsubsection{\textbf{纤维长度与中心轴线构造}}
 
 在前面的内容中，我们已经通过中心点 $\textbf c$ 和方向向量 $\textbf u$ 确定了纤维的空间位置和方向。接下来，我们需要为每根纤维采样一个长度 $l$，以构造出完整的纤维线段 $[\textbf a, \textbf b]$，其中 $\textbf a$ 和 $\textbf b$ 分别是纤维的起点和终点坐标。
 
@@ -187,8 +187,168 @@ l \sim \mathcal{U}(l_{\min}, l_{\max})
 \textbf b = \textbf c + \dfrac{l}{2} \textbf u
 \end{cases}
 \]
-上述构造保证线段长度为 $|b-a|=l$，且线段中点为 $c$。该线段 $[a,b]$ 为候选中心轴线，后续将根据计算域边界执行裁剪（clipped）以得到位于域内的有效线段，详见第 2.2.5 节。
+上述构造保证线段长度为 $|\textbf b - \textbf a|=l$，且线段中点为 $\textbf c$。该线段 $[\textbf a,\textbf b]$ 为候选中心轴线，后续将根据计算域边界执行裁剪（clipped）以得到位于域内的有效线段，详见第 2.2.5 节。
 
-\subsubsection{\textbf{边界裁剪与体素化写入}}
+\subsubsection{\textbf{边界处理与裁剪}}
 
+由于我们最终生成的碳棒纤维有重叠和不重叠两种模式，两种模式下 GDL 的结构特征和孔隙率约束不同，因此在边界处理与裁剪方面也存在差异。
+
+对于\textbf{允许重叠}的情况，我们在构造出候选中心轴线端点 $\textbf a$ 和 $\textbf b$ 后，线段 $[\textbf a, \textbf b]$ 可能会部分或完全超出计算域 $\Omega$ 的边界。为了确保生成的纤维能够正确地写入计算域，本文采用端点模式 \texttt{fiber\_end\_mode=clipped} 策略，将候选中心轴线与轴对齐长方体域求交，仅保留位于域内的部分作为最终的有效线段。
+具体来说，已知定义域的连续几何盒：
+\[
+\mathcal{B}=[0,I] \times [0,J] \times [0,K]
+\]
+和候选中心轴线段的参数式
+\[
+p(t) = \textbf a + t(\textbf b - \textbf a), \quad t \in [0,1]
+\]
+要求一组 $\textbf a', \textbf b'$ 满足
+\[
+[\textbf a', \textbf b'] = [\textbf a, \textbf b] \cap \mathcal{B}
+\]
+等价于找到一段参数区间 $t \in [t_{\min}, t_{\max}]$，使得 $p(t) \in \mathcal{B}$ 内，满足
+\[
+\begin{cases}
+  \textbf a' = p(t_{\min}) \\
+  \textbf b' = p(t_{\max})
+\end{cases}
+\]
+实现上，可以采用标准的线段-轴对齐包围盒（AABB）求交算法，计算出 $t_{\min}$ 和 $t_{\max}$，从而得到裁剪后的线段 $[\textbf a', \textbf b']$。如果裁剪后线段长度小于某个最小阈值（例如 $l_{\min}/2$），则可以直接丢弃该纤维，重新采样。
+
+对于\textbf{禁止重叠}的情况，由于我们需要进行碰撞检测以确保新生成的纤维不会与已有纤维发生重叠，如果继续使用 \texttt{clipped} 策略，其生成的纤维大多可能呈现\textbf{长而贯穿整个域}的特征，这会极大地增加碰撞检测的难度和失败率，导致算法效率急剧下降。为了缓解这一问题，我们可以采用另一种端点模式 \texttt{fiber\_end\_mode=finite}，在该模式下，候选纤维中心轴线段 $[\textbf a, \textbf b]$ 的长度被限制在 $[l_{\min}, l_{\max}]$ 范围内，并且不进行边界裁剪。若端点越界，则拒绝该候选纤维，重新采样。与 \texttt{clipped} 模式相比，\texttt{finite} 模式生成的纤维\textbf{更短、更局部化}，这有助于提高碰撞检测的通过率，从而更高效地生成满足孔隙率约束的纤维结构。
+
+通过上述边界处理与裁剪策略，我们能够根据是否允许重叠的不同模式，生成符合实际 GDL 结构特征的纤维线段，为后续的体素化写入和孔隙率更新奠定了基础。
+
+\subsubsection{\textbf{两种模式下的接受准则与加速策略}}
+
+候选纤维在构造并完成边界处理后，需要经过“接受判定（acceptance test）”才能最终写入计算域。接受准则的设计直接影响算法的效率和生成结构的质量，尤其是在禁止重叠的模式下，合理的接受准则和加速策略对于缓解 jamming 问题至关重要。
+
+本文根据是否允许重叠（\texttt{overlap}），设计了两套不同的接受准则：当 \texttt{overlap=Y} 时，接受准则较为宽松，只要候选纤维满足基本的长度和边界要求即可接受；而当 \texttt{overlap=N} 时，候选纤维必须满足几何互斥约束，即与当前已接受纤维不发生碰撞，方可写入，从而生成不重叠的纤维骨架。
+
+在不重叠模式下，本文以纤维中心轴线之间的最小距离作为碰撞依据，对任意已存在纤维轴线段 $[\textbf a_i,\textbf b_i]$ 和候选纤维轴线段 $[\textbf a, \textbf b]$，若
+\[
+d(\textbf{a}, \textbf{b}, \textbf a_i, \textbf b_i) \le 2r
+\]
+则两根纤维在几何上视为不碰撞，初步接受该纤维，反之拒绝该候选纤维。
+
+如果每次加入一根新纤维，都需要与全部 $N_f$ 纤维进行碰撞检测，那么随着已接受纤维数量的增加，碰撞检测的计算量将呈现二次增长，时间复杂度为 $O({N_f}^2)$，最终导致算法效率急剧下降。为了缓解这一问题，我们引入了基于空间分箱（spatial binning）或轴对齐包围盒（AABB）的预筛选机制：由于 GDL 的结构分层且纤维大多贴近层面，因为我们只需要检查与候选纤维在空间上“可能相遇”的纤维即可。
+
+我们沿厚度轴（\texttt{TP\_AXIS}）将计算域划分为多个连续的分箱（bin），每个 bin 的厚度取 $b$（单位体素），则第 $q$ 个 $bin$ 的范围是
+\[
+\mathcal{Z}_q = [qb, (q+1) \cdot b), \quad q=0,1,\ldots,\left\lceil \dfrac{K_{\textbf{TP}}}{b} \right\rceil - 1
+\]
+对每根纤维 $[\textbf a,\textbf b]$，取它在厚度轴上的最大/最小值：
+\[
+\begin{cases}
+z_{\min} = \min(a_{\textbf{TP}}, b_{\textbf{TP}}) \\
+z_{\max} = \max(a_{\textbf{TP}}, b_{\textbf{TP}})
+\end{cases}
+\]
+则该纤维所在的 bin 索引范围为
+\[
+\begin{cases}
+q_{\min} = \left\lfloor \dfrac{z_{\min}}{b} \right\rfloor \\
+q_{\max} = \left\lfloor \dfrac{z_{\max}}{b} \right\rfloor
+\end{cases}
+\]
+在生成新候选纤维时，我们只需要通过以上步骤算出它的 $q_{\min}$ 和 $q_{\max}$，然后只需要检查 $q \in [q_{\min} - \Delta, q_{\max} + \Delta]$（其中 $\Delta$ 是“临近缓冲”，通常选 1 或 2 防止边界/数值误差即可）这几个 bin 中的纤维是否与候选纤维发生碰撞即可。由于每个 bin 中的纤维数量远小于总纤维数量 $N_f$，因此这种预筛选机制能够显著降低碰撞检测的计算量，时间复杂度从近似 $O({N_f}^2)$ 降低到 $O(N_f \cdot \frac{N_f}{\text{bin\_count}})$，从而大幅提升算法效率，尤其是在生成大量纤维时效果更为显著。
+
+对于分箱检索得到的潜在相交纤维集合，为了进一步减少精确几何计算次数，本文采用轴对齐包围盒（AABB）进行快速的初步碰撞检测。具体来说，对每根纤维的中心轴线端点 $\textbf a$ 和 $\textbf b$ 取出每个坐标的最大/最小值，再加上半径 $r$ 作为边界扩展，即
+\[
+\begin{cases}
+x_{\min} = \min(a_x, b_x) - r \\
+x_{\max} = \max(a_x, b_x) + r \\
+\end{cases}
+\]
+$y$ 和 $z$ 轴同理。对于两个纤维的 AABB，如果它们在任一坐标轴上没有重叠，则两根纤维必定不碰撞，可以直接拒绝该候选纤维。从几何上来说，满足以下分离条件
+\[
+\begin{cases}
+x_{\max}^{(1)} < x_{\min}^{(2)} \quad \text{或} \quad x_{\min}^{(1)} > x_{\max}^{(2)} \\
+y_{\max}^{(1)} < y_{\min}^{(2)} \quad \text{或} \quad y_{\min}^{(1)} > y_{\max}^{(2)} \\
+z_{\max}^{(1)} < z_{\min}^{(2)} \quad \text{或} \quad z_{\min}^{(1)} > z_{\max}^{(2)}
+\end{cases}
+\]
+则两根纤维不碰撞。
+
+通过上述两级加速策略（空间分箱 + AABB 预筛选），我们能够在禁止重叠的模式下高效地进行碰撞检测，显著提升算法效率，缓解 jamming 问题。该组合策略将碰撞检测从近似 $O({N_f}^2)$ 的全局扫描降低到仅对局部区域集合 $\mathcal{N}$ 的检测，平均复杂度约为 $O(|\mathcal{N}|)$，其中 $|\mathcal{N}| \ll N_f$，从而使得算法能够在合理的时间内生成满足孔隙率约束的高质量纤维结构。
+
+\subsubsection{\textbf{不重叠模式下的自适应防 jamming 策略}}
+
+为了缓解不重叠模式下可能出现的 jamming 问题，我们在算法中引入了\textbf{厚度轴偏移（nudge）}和\textbf{自适应参数收紧}两种自适应防 jamming 策略。
+
+在不重叠投放过程中，当候选纤维因碰撞而被拒绝时，我们首先尝试对候选纤维在厚度轴方向上进行微小偏移（nudge），以提高其通过率。具体地，设候选纤维中心点为 $\textbf c$，厚度方向单位向量为 $\textbf e_{\text{TP}}$，则我们可以生成一个随机偏移量 $\Delta$，从而不断对候选纤维进行微调。则第 $m$ 次微调尝试为
+\[
+\begin{cases}
+\textbf c^{(m,+)}= \textbf c + m\Delta\textbf e_{\text{TP}}\\
+\textbf c^{(m,-)}= \textbf c - m\Delta\textbf e_{\text{TP}}
+\end{cases}
+\]
+每次用新中心点重构端点 $\textbf a^{(m,\pm)}, \textbf b^{(m,\pm)}$，并进行碰撞检测，直到通过或达到最大微调次数 $M$。通过这种方式，我们能够在不增加过多计算量的前提下，显著提高候选纤维的接受率，从而缓解 jamming 问题。
+
+当投放的纤维增多，随机投放越来越难以找到合适位置时，我们可以通过\textbf{自适应参数收紧}来进一步缓解 jamming。我们定义变量 \texttt{consecutive\_fails} 来记录连续失败的次数，当其超过某个阈值 $T$ 时，我们触发一次参数收紧操作。具体来说，我们可以通过以下方式来收紧参数：
+\begin{itemize}
+\item 缩短纤维的最大长度 $l_{\max}$，例如每次收紧将 $l_{\max}$ 乘以一个小于 1 的系数 $\gamma$（如 $\gamma=0.9$），使得后续生成的纤维更短、更局部化，从而更容易找到合适位置。
+\item 适度减小离层请教扰动 $\sigma_\beta$ 与厚度扰动 $\sigma_{\text{TP}}$，每次收紧将它们乘以一个小于 1 的系数 $\eta$（如 $\eta=0.9$），使得后续生成的纤维更贴近层面且厚度位置更集中，从而降低碰撞概率。
+\item 慎重减小层内角度离散度 $\sigma_\alpha$，每次收紧将 $\sigma_\alpha$ 乘以一个小于 1 的系数 $\zeta$（如 $\zeta=0.9$），使得后续生成的纤维更趋向于层内主方向，从而降低碰撞概率。同时需要注意，减小 ￥、$\sigma_\alpha$ 可能会使得纤维过于集中在主方向，导致生成的结构呈现“束状/编队”特征，过度收紧可能会降低结构的真实性，因此需要根据实际情况谨慎调整。
+\end{itemize}
+同时为了避免把参数收紧到“失去模型意义”，我们可以为每个参数设置一个下限：
+\[
+\begin{cases}
+l_{\max} \ge l_{\max}^{\min} \\
+\sigma_\beta \ge \sigma_\beta^{\min} \\ 
+\sigma_{\text{TP}} \ge \sigma_{\text{TP}}^{\min} \\
+\end{cases}
+\]
+该策略旨在避免生成过程长时间停滞，并在保持结构统计特征合理的前提下提高生成稳定性。
+
+\subsubsection{\textbf{体素化写入与纤维相写入}}
+
+这一步的目标是要把连续几何映射到离散体素的状态函数 $S(x)$ 上。考虑对于每个体素中心点 $\textbf x$，激素按它到线段 $[\textbf a, \textbf b]$ 的距离 $d(\textbf x, [\textbf a, \textbf b])$ 来定义 $S(\textbf x)$ 的值：
+\[
+S(\textbf x) = \begin{cases}
+1 & \text{如果 } \quad d(\textbf x, [\textbf a, \textbf b]) \le r \\
+0 & \text{否则}
+\end{cases}
+\]
+
+这里考虑如何计算点 $\textbf p$ 到线段 $[\textbf a, \textbf b]$ 的距离。定义线段方向向量：
+\[
+\textbf{v} = \textbf b - \textbf a
+\]
+线段上的任意点可以表示为
+\[
+\textbf{q}(t) = \textbf a + t\textbf v, \quad t \in [0,1]
+\]
+那么首先计算点 $\textbf p$ 到线段所在直线的投影参数 $t_0$：
+\[
+t_0 = \dfrac{(\textbf p - \textbf a) \cdot \textbf v}{||\textbf v||^2}
+\]
+这里 $t_0$ 表示的是点 $\textbf p$ 在直线上的投影位置，可能落在 $(-\infty, +\infty)$ 上。为了得到点 $\textbf p$ 到线段的距离，我们需要将 $t_0$ 限制在 $[0,1]$ 范围内：
+\[
+t = \text{clip}(t_0, 0, 1) = \min(\max(t_0, 0), 1)
+\]
+那么此时，$\textbf p$ 到线段 $[\textbf a, \textbf b]$ 的最近点为
+\[
+\textbf{q} = \textbf a + t\textbf v
+\]
+此时最短距离
+\[
+d(\textbf p, [\textbf a, \textbf b]) = ||\textbf p - \textbf{q}||
+\]
+
+同时，由于对全域 $N$ 的体素进行上述计算可能会非常耗时，我们可以通过仅在 $[\textbf a, \textbf b]$ 的轴对齐包围盒（AABB）扩展 $r$ 的局部区域遍历体素，来显著减少计算量。具体的计算同理于前文的 AABB 计算。
+
+通过上述方法，我们能够高效地将连续的纤维线段映射到离散的体素网格上，生成最终的纤维骨架结构。
+
+\subsubsection{\textbf{终止准则与孔隙率匹配}}
+
+纤维生成过程采用逐根迭代写入的方式进行。每当一根候选纤维通过接受判定并完成体素化写入后，依据第 2.1.2--2.1.3 节给出的相体积分数与孔隙率定义更新当前孔隙率 $\varepsilon$。随后检查终止条件以决定是否继续生成。
+
+本文以孔隙率目标约束作为主终止条件，当
+\[
+|\varepsilon - \varepsilon_{\mathrm{target}}| \le \delta_\varepsilon
+\]
+成立时，即认为纤维骨架已满足目标孔隙率要求，终止纤维生成并输出 $S(\textbf x)$ 及纤维列表。为避免无线循环，算法同时设置最大尝试次数 \texttt{max\_tries}，当连续尝试生成纤维的次数超过该值时，无论是否满足孔隙率约束，均强制终止算法，并输出当前最接近目标的结构与误差。
+
+在不允许重叠的模式下，随着固相含量增加，候选纤维被拒绝的概率可能显著上升并出现 \emph{jamming}。因此除 \texttt{max\_tries} 外，本文还监控连续失败次数 \texttt{consecutive\_fail}：当连续失败达到阈值时触发自适应策略（见第 \ref{sec:acceptance} 节），以提高放置成功率；若参数已收紧至预设下限后仍长期失败，则判定在当前约束与参数设定下无法进一步逼近目标孔隙率，并终止生成过程。
 
