@@ -10,8 +10,8 @@
 
 \begin{table}[H]
 \centering
-\Huge
-\begin{adjustbox}{max width=\columnwidth}
+\small
+\begin{adjustbox}{width=\columnwidth}
 \begin{tabular}{lll}
 \hline
 \textbf{符号/名称} & \textbf{含义} & \textbf{典型取值/范围} \\
@@ -38,22 +38,22 @@
 为模拟GDL“分层堆叠”的宏观特征，沿厚度轴（$I$ 轴）划分分层数 $n_{\text{layers}}$，分层厚度 $h_{\text{layer}} = \max(4.0 \times r_{\text{fiber}}, 1.0)$ 体素，最终分层数取 $\max(3, \text{round}(\text{thickness}/h_{\text{layer}}))$（至少3层保证分层效果）。层内纤维中心在厚度轴方向的扰动（jitter）设为 $0.35 \times h_{\text{layer}}$，平衡分层规整性与真实随机性。
 
 各向异性扰动参数控制纤维方向的“乱中有序”，具体设置如表 \ref{tab:anisotropic_params} 所示。
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-% 限制表格总宽度为单栏95%，确保与上下文对齐
-\resizebox{0.95\linewidth}{!}{%
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{2cm}>{\arraybackslash$}p{3.5cm}<{$}@{}}
-\toprule
-符号/名称 & 含义 & \multicolumn{1}{c}{取值/范围} \\
-\midrule
-$n_{\text{layers}}$ & 分层数 & \max(3, \text{round}(\text{thickness}/h_{\text{layer}})) \\
-$\sigma_z$ (jitter) & 层内厚度方向抖动 & 0.35 \times h_{\text{layer}} \\
-$\sigma_{\alpha}$ & 面内角度离散度 & 55.0^\circ \\
-$\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & \sigma_{\beta}=4.0^\circ,\ \beta_{\max}=10.0^\circ \\
-相邻层方向步长 & 层间方向变化步长 & 20^\circ \text{（随机游走）} \\
-\bottomrule
+\Huge
+\begin{adjustbox}{width=\columnwidth}
+\begin{tabular}{lll}
+\hline
+\textbf{符号/名称} & \textbf{含义} & \textbf{取值/范围} \\
+\hline
+$n_{\text{layers}}$ & 分层数 & $\max(3, \text{round}(\text{thickness}/h_{\text{layer}}))$ \\
+$\sigma_z$ (jitter) & 层内厚度方向抖动 & $0.35 \times h_{\text{layer}}$ \\
+$\sigma_{\alpha}$ & 面内角度离散度 & $55.0^\circ$ \\
+$\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & $\sigma_{\beta}=4.0^\circ,\ \beta_{\max}=10.0^\circ$ \\
+相邻层方向步长 & 层间方向变化步长 & $20^\circ \text{（随机游走）}$ \\
+\hline
 \end{tabular}
-}
+\end{adjustbox}
 \caption{分层与各向异性参数}
 \label{tab:anisotropic_params}
 \end{table}
@@ -69,20 +69,21 @@ $\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & \sigma_{\beta}=4.0^\circ,\
 \par}
 \begin{table}[H]
 \centering
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.1}
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{2.2cm}l@{}}
-\toprule
-符号/名称 & 含义 & 取值/范围 \\
-\midrule
+\small
+\begin{adjustbox}{width=\columnwidth}
+\begin{tabular}{lll}
+\hline
+\textbf{符号/名称} & \textbf{含义} & \textbf{取值/范围} \\
+\hline
 \(\phi_{\text{binder,total}}\) & binder体积分数 & 0.012 \\
 \(g_{\text{contact}}\) & 接触间隙 & \(0.35 \times r_{\text{fiber}}\) \\
 \(r_{\text{binder,blob}}\) & 初始胶团半径 & \(1.05 \times r_{\text{fiber}}\) \\
 \(d_{\text{user}}\) & 毛细桥连线长度 & \(2.65 \times r_{\text{fiber}}\) \\
 \(\text{d}t, \text{d}s\) & 采样密度（体素） & 0.65，0.75 \\
 约束条件 & 体素范围约束 & 纤维间隙slab区域 \\
-\bottomrule
+\hline
 \end{tabular}
+\end{adjustbox}
 \caption{binder 生成核心参数}
 \label{tab:binder_params}
 \end{table}
@@ -93,22 +94,23 @@ $\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & \sigma_{\beta}=4.0^\circ,\
 
 \subsection{数值计算与优化参数（表5）}
 为提升算法效率与结果可复现性，采用多项数值优化策略，具体设置如表 \ref{tab:optimization_params} 所示。
-
+\\
 % 修正后的表5：同样适配单栏宽度
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-\resizebox{0.95\linewidth}{!}{%
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{2cm}>{\raggedright\arraybackslash}p{3.5cm}@{}}
-\toprule
-策略名称 & 含义 & 设置方式 \\
-\midrule
+\begin{adjustbox}{width=\columnwidth}
+\Huge
+\begin{tabular}{lll}
+\hline
+\textbf{策略名称} & \textbf{含义} & \textbf{设置方式} \\
+\hline
 Numba JIT 编译 & 核心几何计算加速 & 加速 \texttt{point\_segment\_dist2} 等函数 \\
 AABB 分箱预筛 + 微调 & 不重叠模式优化 & 降低高密度碰撞检测开销 \\
 Scipy 距离变换 & 体素平滑方式 & 生成窄过渡带（无则降级） \\
 全局随机种子 & 可复现性控制 & 42 \\
-\bottomrule
+\hline
 \end{tabular}
-}
+\end{adjustbox}
 \caption{数值计算与优化参数}
 \label{tab:optimization_params}
 \end{table}
@@ -123,18 +125,19 @@ Scipy 距离变换 & 体素平滑方式 & 生成窄过渡带（无则降级） \
 
 \begin{table}[H]
 \centering
-\resizebox{0.95\linewidth}{!}{%
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{2cm}@{}}
-\toprule
-文件编号 & 文件名 & 组合模式 \\
-\midrule
+\begin{adjustbox}{width=\columnwidth}
+\Large
+\begin{tabular}{lll}
+\hline
+\textbf{文件编号} & \textbf{文件名} & \textbf{组合模式} \\
+\hline
 opt=1 & \path{gdl_layered_opt1.dat} & 不重叠+无 binder \\
 opt=2 & \path{gdl_layered_opt2.dat} & 可重叠+无 binder \\
 opt=3 & \path{gdl_layered_opt3.dat} & 不重叠+有 binder \\
 opt=4 & \path{gdl_layered_opt4.dat} & 可重叠+有 binder \\
-\bottomrule
+\hline
 \end{tabular}
-}
+\end{adjustbox}
 \caption{输出文件设置}
 \label{tab:output_files}
 \end{table}
