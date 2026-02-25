@@ -55,9 +55,10 @@
 \end{center}
 分层随机纤维生成算法的主要参数如下：
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-\begin{adjustbox}{max width=\columnwidth,center}
+\Huge
+\begin{adjustbox}{max width=\columnwidth}
 \begin{tabular}{lll}
 \hline
 \textbf{符号/名称} & \textbf{含义} & \textbf{典型取值/范围} \\
@@ -78,7 +79,8 @@ $\delta_\varepsilon$ & 孔隙率容差（停止阈值） & 例如 $10^{-4}\sim 1
 \hline
 \end{tabular}
 \end{adjustbox}
-\caption{分层随机纤维生成算法的主要参数。}\label{tab:fiber_params_cn}
+\caption{分层随机纤维生成算法的主要参数。}
+\label{tab:fiber_params_cn}
 \end{table}
 
 \subsubsection{\textbf{厚度方向分层建模与层内位置采样}}
@@ -351,4 +353,3 @@ d(\textbf p, [\textbf a, \textbf b]) = ||\textbf p - \textbf{q}||
 成立时，即认为纤维骨架已满足目标孔隙率要求，终止纤维生成并输出 $S(\textbf x)$ 及纤维列表。为避免无线循环，算法同时设置最大尝试次数 \texttt{max\_tries}，当连续尝试生成纤维的次数超过该值时，无论是否满足孔隙率约束，均强制终止算法，并输出当前最接近目标的结构与误差。
 
 在不允许重叠的模式下，随着固相含量增加，候选纤维被拒绝的概率可能显著上升并出现 \emph{jamming}。因此除 \texttt{max\_tries} 外，本文还监控连续失败次数 \texttt{consecutive\_fail}：当连续失败达到阈值时触发自适应策略（见第 \ref{sec:acceptance} 节），以提高放置成功率；若参数已收紧至预设下限后仍长期失败，则判定在当前约束与参数设定下无法进一步逼近目标孔隙率，并终止生成过程。
-
