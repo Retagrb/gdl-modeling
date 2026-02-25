@@ -1,0 +1,23 @@
+# Fdb version 4
+["pdflatex"] 1771949147.4658 "c:/Typora 文档/server-backup/latex/second-math/main.tex" "main.pdf" "main" 1771949148.0362 2
+  "c:/Typora 文档/server-backup/latex/second-math/main.tex" 1771946608 18863 62e4b09710253564526bb48bfbc8724b ""
+  "c:/texlive/2024/texmf-dist/tex/generic/iftex/iftex.sty" 1725250226 7237 bdd120a32c8fdb4b433cf9ca2e7cd98a ""
+  "c:/texlive/2024/texmf-dist/tex/generic/iftex/ifvtex.sty" 1725250226 1057 525c2192b5febbd8c1f662c9468335bb ""
+  "c:/texlive/2024/texmf-dist/tex/latex/base/article.cls" 1725251868 20144 147463a6a579f4597269ef9565205cfe ""
+  "c:/texlive/2024/texmf-dist/tex/latex/base/size10.clo" 1725251868 8448 dbc0dbf4156c0bb9ba01a1c685d3bad0 ""
+  "c:/texlive/2024/texmf-dist/tex/latex/fontspec/fontspec.sty" 1725249947 3484 ff877041166391bc5ca8a1e45614784e ""
+  "c:/texlive/2024/texmf-dist/tex/latex/geometry/geometry.sty" 1725249983 41601 9cf6c5257b1bc7af01a58859749dd37a ""
+  "c:/texlive/2024/texmf-dist/tex/latex/graphics/keyval.sty" 1725250023 2671 7e67d78d9b88c845599a85b2d41f2e39 ""
+  "c:/texlive/2024/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def" 1725251858 30006 3d512c0edd558928ddea1690180ef77e ""
+  "c:/texlive/2024/texmf-dist/tex/latex/l3kernel/expl3.sty" 1725251860 6565 10e89ed128ccd59431746bbdd82129fc ""
+  "c:/texlive/2024/texmf-dist/tex/latex/l3packages/xparse/xparse.sty" 1725251861 9327 11bedad2ac38f92e405a38ed18489a03 ""
+  "c:/texlive/2024/texmf-dist/web2c/texmf.cnf" 1725249362 41649 5d6ae549fbbcb850a863f69aa41f3d10 ""
+  "c:/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt" 1725253166 8221523 054a8d142730745d7e6a257de86f30d3 ""
+  "c:/texlive/2024/texmf.cnf" 1725252950 713 e69b156964470283e0530f5060668171 ""
+  "main.aux" 1771949147 34 3985256e7290058c681f74d7a3565a19 "pdflatex"
+  "main.tex" 1771946608 18863 62e4b09710253564526bb48bfbc8724b ""
+  (generated)
+  "main.aux"
+  "main.log"
+  "main.pdf"
+  (rewritten before read)
