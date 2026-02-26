@@ -60,3 +60,28 @@ H(\textbf{x}) \leftarrow \mathcal{G}_{\sigma}(M_b)(\textbf x)
 
 在进行高斯滤波的过程中，临近边界的点有可能会需要访问到体素网格边界之外的值。若简单的将边界外的值视为 0，可能会导致临近边界的固相平滑值杯拉低，从而使得界面位置“向内收缩”。为避免这种边界效应，本文在高斯滤波时采用邻边界扩展（nearest），将边界外的值设置为与边界内最近的值相同（即边界复制），从而保证平滑后的界面位置更接近原始二值场的位置。
 
+在离散实现中，滤波结果的峰值可能因数值截断/边界处理等因素略小于 1，从而使等值面阈值不够直观。为保证 $\mathrm{Iso}=0.5$ 能稳定穿过原始边界位置，本文在滤波后对结果进行归一化处理：
+\[
+\begin{cases}
+F(\textbf{x}) = \dfrac{F(\textbf{x})}{\max(F)}\\
+H(\textbf{x}) = \dfrac{H(\textbf{x})}{\max(H)}
+\end{cases}
+\]
+归一化后 $F,H \in [0,1]$，且界面位置更稳定地对应于 $\mathrm{Iso}=0.5$。
+
+为进一步抑制残余的锯齿感，可在 $F,H$ 的基础上施加一次更小标准差 $\sigma_{\text{post}}$ 的高斯滤波：
+\[
+\begin{cases}
+    F(\textbf{x}) \leftarrow \mathcal{G}_{\sigma_{\text{post}}}(F)(\textbf{x})\\
+    H(\textbf{x}) \leftarrow \mathcal{G}_{\sigma_{\text{post}}}(H)(\textbf{x})
+\end{cases}
+\]
+该步骤为纯可视化后处理，不参与孔隙率与体积分数等统计量计算。
+
+\subsubsection{\textbf{Tecplot 可视化设置}}
+
+在 Tecplot 中建议按如下方式组织显示：
+(1) 使用 $Flag=0.5$ 的等值面作为整体结构预览；(2) 分别绘制 $Fiber=0.5$ 与 $Binder=0.5$ 的等值面，
+以展示纤维与粘结剂的空间分布与胶桥结构；必要时可对粘结剂等值面设置一定透明度以避免遮挡纤维细节。
+为获得更平滑的渲染效果，建议在等值面生成选项中启用 \textit{Allow Quads}（允许四边形面片），并开启光照
+与法向平滑（Shaded/Lighting + Smooth Normals），以进一步降低体素化导致的视觉棱角。
