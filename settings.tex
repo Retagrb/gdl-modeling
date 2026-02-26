@@ -13,9 +13,9 @@
 \small
 \begin{adjustbox}{width=\columnwidth}
 \begin{tabular}{lll}
-\hline
+\toprule
 \textbf{符号/名称} & \textbf{含义} & \textbf{典型取值/范围} \\
-\hline
+\midrule
 \(I,J,K\) & 体素域尺寸 & \(155 \times 300 \times 300\) \\
 \(r_{\text{fiber}}\) & 纤维半径（体素） & 3.5 \\
 \(L_{\text{min}}, L_{\text{max}}\) & 纤维长度范围 & 140.0，320.0 \\
@@ -23,7 +23,7 @@
 \texttt{max\_fibers} & 纤维生成上限 & 50000 根 \\
 \(\varepsilon_{\text{target,total}}\) & 目标总孔隙率 & 0.8018 \\
 \(\Delta\varepsilon\) & 孔隙率收敛精度 & 0.0005 \\
-\hline
+\bottomrule
 \end{tabular}
 \end{adjustbox}
 \caption{基础几何与孔隙率参数}
@@ -43,15 +43,15 @@
 \Huge
 \begin{adjustbox}{width=\columnwidth}
 \begin{tabular}{lll}
-\hline
+\toprule
 \textbf{符号/名称} & \textbf{含义} & \textbf{取值/范围} \\
-\hline
+\midrule
 $n_{\text{layers}}$ & 分层数 & $\max(3, \text{round}(\text{thickness}/h_{\text{layer}}))$ \\
 $\sigma_z$ (jitter) & 层内厚度方向抖动 & $0.35 \times h_{\text{layer}}$ \\
 $\sigma_{\alpha}$ & 面内角度离散度 & $55.0^\circ$ \\
 $\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & $\sigma_{\beta}=4.0^\circ,\ \beta_{\max}=10.0^\circ$ \\
 相邻层方向步长 & 层间方向变化步长 & $20^\circ \text{（随机游走）}$ \\
-\hline
+\bottomrule
 \end{tabular}
 \end{adjustbox}
 \caption{分层与各向异性参数}
@@ -72,16 +72,16 @@ $\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & $\sigma_{\beta}=4.0^\circ,
 \small
 \begin{adjustbox}{width=\columnwidth}
 \begin{tabular}{lll}
-\hline
+\toprule a
 \textbf{符号/名称} & \textbf{含义} & \textbf{取值/范围} \\
-\hline
+\midrule
 \(\phi_{\text{binder,total}}\) & binder体积分数 & 0.012 \\
 \(g_{\text{contact}}\) & 接触间隙 & \(0.35 \times r_{\text{fiber}}\) \\
 \(r_{\text{binder,blob}}\) & 初始胶团半径 & \(1.05 \times r_{\text{fiber}}\) \\
 \(d_{\text{user}}\) & 毛细桥连线长度 & \(2.65 \times r_{\text{fiber}}\) \\
 \(\text{d}t, \text{d}s\) & 采样密度（体素） & 0.65，0.75 \\
 约束条件 & 体素范围约束 & 纤维间隙slab区域 \\
-\hline
+\bottomrule
 \end{tabular}
 \end{adjustbox}
 \caption{binder 生成核心参数}
@@ -98,19 +98,16 @@ $\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & $\sigma_{\beta}=4.0^\circ,
 % 修正后的表5：同样适配单栏宽度
 \begin{table}[H]
 \centering
-\begin{adjustbox}{width=\columnwidth}
-\Huge
-\begin{tabular}{lll}
-\hline
-\textbf{策略名称} & \textbf{含义} & \textbf{设置方式} \\
-\hline
-Numba JIT 编译 & 核心几何计算加速 & 加速 \texttt{point\_segment\_dist2} 等函数 \\
+\begin{tabular}{p{1.8cm}p{2.7cm}p{2.5cm}}
+\toprule
+策略名称 & 含义 & 设置方式 \\
+\midrule
+Numba JIT 编译 & 核心几何计算加速 & 加速 point segment dist2 等函数 \\
 AABB 分箱预筛 + 微调 & 不重叠模式优化 & 降低高密度碰撞检测开销 \\
 Scipy 距离变换 & 体素平滑方式 & 生成窄过渡带（无则降级） \\
 全局随机种子 & 可复现性控制 & 42 \\
-\hline
+\bottomrule
 \end{tabular}
-\end{adjustbox}
 \caption{数值计算与优化参数}
 \label{tab:optimization_params}
 \end{table}
@@ -128,14 +125,14 @@ Scipy 距离变换 & 体素平滑方式 & 生成窄过渡带（无则降级） \
 \begin{adjustbox}{width=\columnwidth}
 \Large
 \begin{tabular}{lll}
-\hline
+\toprule
 \textbf{文件编号} & \textbf{文件名} & \textbf{组合模式} \\
-\hline
+\midrule
 opt=1 & \path{gdl_layered_opt1.dat} & 不重叠+无 binder \\
 opt=2 & \path{gdl_layered_opt2.dat} & 可重叠+无 binder \\
 opt=3 & \path{gdl_layered_opt3.dat} & 不重叠+有 binder \\
 opt=4 & \path{gdl_layered_opt4.dat} & 可重叠+有 binder \\
-\hline
+\bottomrule
 \end{tabular}
 \end{adjustbox}
 \caption{输出文件设置}
