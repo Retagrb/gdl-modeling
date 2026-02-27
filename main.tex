@@ -34,6 +34,15 @@
 \usepackage[vlined]{algorithm2e}
 \SetKwInput{KwIn}{Input}
 \SetKwInput{KwOut}{Output}
+\usepackage[backend=biber, style=numeric, sorting=none]{biblatex}
+\addbibresource{reference.bib}
+\DeclareCiteCommand{\cite}[\mkbibsuperscript]  % 包裹为上角标
+  {\usebibmacro{prenote}}
+  {\usebibmacro{citeindex}%
+   \printfield{prefixnumber}%
+   \printfield{labelnumber}}  % 打印数字序号
+  {\multicitedelim}
+  {\usebibmacro{postnote}}
 
 % ---- Column & line number spacing tweaks ----
 \setlength{\columnsep}{24pt}      % space between the two columns (default ~10pt)
@@ -43,12 +52,7 @@
 
 %%%%%% Bibliography %%%%%%
 % Replace "sample" in the \addbibresource line below with the name of your .bib file.
-\usepackage[
-  style=nejm, 
-  citestyle=numeric-comp,
-  sorting=none
-]{biblatex}
-\addbibresource{sample.bib}
+
 
 %%%%%% Title %%%%%%
 % Full titles can be a maximum of 100 characters, including spaces. 
@@ -177,7 +181,7 @@
 
 %\input{conclusion.tex}
 
-\section{}
+\section{References}
 
 
 %%%%%% Figures %%%%%%
@@ -338,6 +342,5 @@
 
 % DOIs, if available, should be included for each reference.
 
-% \printbibliography
-
+\printbibliography[heading=none]
 \end{document}

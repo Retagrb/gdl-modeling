@@ -15,7 +15,7 @@
 
 \subsubsection{\textbf{高斯平滑的数学形式}}
 
-为降低体素离散导致的界面台阶伪影，并与 2.3.6 节的可视化字段（\texttt{Fiber/Binder/Flag}）保持一致，本文将二值指示场 $S(\textbf{x}), B(\textbf{x})$ 通过三维高斯平滑（Gaussian smoothing）进行平滑处理，映射为连续的可视化场 $\tilde{S}(\textbf{x}), \tilde{B}(\textbf{x})$。
+为降低体素离散导致的界面台阶伪影，并与 2.3.6 节的可视化字段（\texttt{Fiber/Binder/Flag}）保持一致，本文将二值指示场 $S(\textbf{x}), B(\textbf{x})$ 通过三维高斯平滑（Gaussian smoothing）\cite{sarkka2013gaussian,deisenroth2010probabilistic}进行平滑处理，映射为连续的可视化场 $\tilde{S}(\textbf{x}), \tilde{B}(\textbf{x})$。
 
 三维高斯核定义为
 \[
