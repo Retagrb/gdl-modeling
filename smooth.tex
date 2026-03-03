@@ -6,10 +6,7 @@
 
 然而，若最直接对二值体素场提取等值面（例如在 Tecplot 中绘制 Iso-surface），固-孔界面将严格受体素网格约束，导致明显的”台阶效应/锯齿伪影”（staircase artifacts）。该伪影会影响三维结构的展示观感与局部细节辨识，尤其在纤维半径与体素尺寸同量级、或存在细小 binder 胶桥/团聚结构时更为突出。需要强调的是，这类锯齿来自离散表示与渲染方式，并不意味着几何生成或物理统计本身存在误差。
 
-为降低体素边界带来的锯齿感并获得更加平滑的界面显示，本文在输出数据中额外构造用于可视化的连续标量场 $\tilde{S}(\textbf{x}), \tilde{B}(\textbf{x}) \in [0,1]$。其基本思想是：以最终生成的二值相场 $S(\textbf{x}), B(\textbf{x})$ 作为输入，通过局部平滑/软边界映射将“硬边界”转换为具有亚体素过渡带的“软边界”连续场，从而使得等值面在特定阈值（例如 $\mathrm{Iso}=0.5$）附近穿过原始边界位置，实现更稳定、平滑的界面重建。进一步地，为便于整体结构快速预览，定义合成显示场
-\[
-\texttt{Flag} = \max(\tilde{S}(\textbf{x}), \tilde{B}(\textbf{x}))
-\]
+为降低体素边界带来的锯齿感并获得更加平滑的界面显示，本文在输出数据中额外构造用于可视化的连续标量场 $\tilde{S}(\textbf{x}), \tilde{B}(\textbf{x}) \in [0,1]$。其基本思想是：以最终生成的二值相场 $S(\textbf{x}), B(\textbf{x})$ 作为输入，通过局部平滑/软边界映射将“硬边界”转换为具有亚体素过渡带的“软边界”连续场，从而使得等值面在特定阈值（例如 $\mathrm{Iso}=0.5$）附近穿过原始边界位置，实现更稳定、平滑的界面重建。进一步地，为便于整体结构快速预览，定义合成显示场 $(68)$。
 
 本节平滑处理的\textbf{适用对象}为：\textbf{纤维相二值场 $S(\textbf{x})$} 与（若启用 binder）\textbf{粘连剂相二值场 $B(\textbf{x})$}。无论前述微结构生成采用“重叠/不重叠”模式，平滑步骤均在相场生成完成后对最终的 $S(\textbf{x})$ 和 $B(\textbf{x})$ 进行处理，因此不影响几何生成逻辑。尤为重要的是，$\tilde{S}(\textbf{x}),\tilde{B}(\textbf{x}),\texttt{Flag}$ 仅用于可视化展示，不参与孔隙率/体积分数等统计量的重新计量；本文所有的统计结果均以二值相场 $S(\textbf{x}), B(\textbf{x})$ 为基础计算，确保物理统计的准确性与一致性。
 
@@ -18,64 +15,69 @@
 为降低体素离散导致的界面台阶伪影，并与 2.3.6 节的可视化字段（\texttt{Fiber/Binder/Flag}）保持一致，本文将二值指示场 $S(\textbf{x}), B(\textbf{x})$ 通过三维高斯平滑（Gaussian smoothing）\cite{sarkka2013gaussian,deisenroth2010probabilistic}进行平滑处理，映射为连续的可视化场 $\tilde{S}(\textbf{x}), \tilde{B}(\textbf{x})$。
 
 三维高斯核定义为
-\[
-G_{\sigma}(\textbf{r}) = \frac{1}{(2\pi\sigma^2)^{3/2}} \exp\left(-\frac{\|\textbf{r}\|^2}{2\sigma^2}\right)
-\]
+\begin{equation}
+G_{\sigma}(\textbf{r}) = \frac{1}{(2\pi\sigma^2)^{3/2}} \exp\left(-\frac{\|\textbf{r}\|^2}{2\sigma^2}\right),
+\end{equation}
 其中 $\sigma$ 是标准差，控制平滑程度（单位为体素）；$\textbf{r} = (x,y,z)$ 是空间位置向量。对于离散体素场，平滑后的值通过卷积计算得到：该核满足
-\[
-\int_{\mathbb{R}^3} G_{\sigma}(\textbf{r}) \, d\textbf{r} = 1
-\]
+\begin{equation}
+\int_{\mathbb{R}^3} G_{\sigma}(\textbf{r}) \, d\textbf{r} = 1,
+\end{equation}
 从而保证平滑操作作为局部加权平均，不引入整体强度偏移。
 
 记 $F_0(\textbf x) = S(\textbf x)$、$H_0(\textbf x) = B(\textbf x)$，则平滑后的连续场 $\tilde{S}(\textbf{x}), \tilde{B}(\textbf{x})$ 通过以下卷积计算得到：
-\[
+\begin{equation}
 \begin{cases}
 \tilde{S}(\textbf{x}) = (G_{\sigma} * F_0)(\textbf{x}) = \sum_{\textbf{r} \in \Omega} G_{\sigma}(\textbf{x}-\textbf{r}) S(\textbf{r})\\
 \tilde{B}(\textbf{x}) = (G_{\sigma} * H_0)(\textbf{x}) = \sum_{\textbf{r} \in \Omega} G_{\sigma}(\textbf{x}-\textbf{r}) B(\textbf{r})
 \end{cases}
-\]
+,
+\end{equation}
 其中 $*$ 表示三维卷积。由于 $S,B$ 为二值场，平滑后在界面附近形成 $0$--$1$ 的连续过渡区，而在相内区域则趋近于 $1$，在孔隙区域则趋近于 $0$。通过调整 $\sigma$ 的大小，可以控制过渡带的宽度，从而实现不同程度的平滑效果。
 
-本节只给出高斯平滑在该问题中的应用形式，有关三维高斯的具体算法推导详见附录 \ref{appendix:gaussian}。
+本节只给出高斯平滑在该问题中的应用形式，有关三维高斯的具体算法推导详见附录。
 
 \subsubsection{\textbf{数值实现细节}}
 
 高斯平滑在体素网格 $\Omega \subset \mathbb{Z}^3$ 上实现。输入为最终生成的二值相场。为构造可视化连续场，我们首先将二值相场转为布尔掩码再转为浮点数
-\[
+\begin{equation}
 \begin{cases}
 M_f(\textbf{x}) = \mathbb{I}[S(\textbf{x})=1]\\
 M_b(\textbf{x}) = \mathbb{I}[B(\textbf{x})=1]
 \end{cases}
-\]
+,
+\end{equation}
 其最终 $\mathbb{I}[\cdot]$ 是指示函数，输出为 $0$ 或 $1$。数值实现中采用 \texttt{float32} 以降低内存占用。
 
 根据上文提到的卷积形式，本文在离散网格上使用三维高斯滤波算子近似实现卷积：
-\[
+\begin{equation}
 \begin{cases}
 F(\textbf{x}) \leftarrow \mathcal{G}_{\sigma}(M_f)(\textbf x)\\
 H(\textbf{x}) \leftarrow \mathcal{G}_{\sigma}(M_b)(\textbf x)
 \end{cases}
-\]
+,
+\end{equation}
 其中 $\mathcal{G}_{\sigma}$ 表示对三维数组施加标准差为 $\sigma$ 的高斯滤波操作。该步骤将 0/1 硬边界映射为 $[0,1]$ 的连续软边界，从而在界面附近形成亚体素过渡带。
 
 在进行高斯滤波的过程中，临近边界的点有可能会需要访问到体素网格边界之外的值。若简单的将边界外的值视为 0，可能会导致临近边界的固相平滑值杯拉低，从而使得界面位置“向内收缩”。为避免这种边界效应，本文在高斯滤波时采用邻边界扩展（nearest），将边界外的值设置为与边界内最近的值相同（即边界复制），从而保证平滑后的界面位置更接近原始二值场的位置。
 
 在离散实现中，滤波结果的峰值可能因数值截断/边界处理等因素略小于 1，从而使等值面阈值不够直观。为保证 $\mathrm{Iso}=0.5$ 能稳定穿过原始边界位置，本文在滤波后对结果进行归一化处理：
-\[
+\begin{equation}
 \begin{cases}
 F(\textbf{x}) = \dfrac{F(\textbf{x})}{\max(F)}\\
 H(\textbf{x}) = \dfrac{H(\textbf{x})}{\max(H)}
 \end{cases}
-\]
+,
+\end{equation}
 归一化后 $F,H \in [0,1]$，且界面位置更稳定地对应于 $\mathrm{Iso}=0.5$。
 
 为进一步抑制残余的锯齿感，可在 $F,H$ 的基础上施加一次更小标准差 $\sigma_{\text{post}}$ 的高斯滤波：
-\[
+\begin{equation}
 \begin{cases}
     F(\textbf{x}) \leftarrow \mathcal{G}_{\sigma_{\text{post}}}(F)(\textbf{x})\\
     H(\textbf{x}) \leftarrow \mathcal{G}_{\sigma_{\text{post}}}(H)(\textbf{x})
 \end{cases}
-\]
+,
+\end{equation}
 该步骤为纯可视化后处理，不参与孔隙率与体积分数等统计量计算。
 
 \subsubsection{\textbf{Tecplot 可视化设置}}

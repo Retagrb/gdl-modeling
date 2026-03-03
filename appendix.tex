@@ -1,0 +1,93 @@
+本附录给出本文 2.4 节所用三维各向同性高斯核的归一化推导。
+推导目标是确定常数系数 $C$ 使得核函数
+\begin{equation}
+G_\sigma(\mathbf{r}) = C \exp\!\left(-\frac{\|\mathbf{r}\|^2}{2\sigma^2}\right),
+\qquad \mathbf{r}=(x,y,z)\in\mathbb{R}^3,
+\end{equation}
+满足单位质量（unit mass）条件
+\begin{equation}
+\int_{\mathbb{R}^3} G_\sigma(\mathbf{r})\,d\mathbf{r}=1,
+\end{equation}
+从而保证卷积平滑为局部加权平均且不引入整体幅值偏移。
+
+\subsection*{A.1 一维高斯核的归一化}
+首先考虑一维函数
+\begin{equation}
+g_\sigma(x)=c \exp\!\left(-\frac{x^2}{2\sigma^2}\right),
+\qquad x\in\mathbb{R}.
+\end{equation}
+令其满足 $\int_{\mathbb{R}} g_\sigma(x)\,dx=1$，则
+\begin{equation}
+1=\int_{-\infty}^{\infty} c \exp\!\left(-\frac{x^2}{2\sigma^2}\right)\,dx
+=c\int_{-\infty}^{\infty}\exp\!\left(-\frac{x^2}{2\sigma^2}\right)\,dx.
+\end{equation}
+作变量代换 $x=\sigma t$（$\sigma>0$），有 $dx=\sigma dt$，因此
+\begin{equation}
+\int_{-\infty}^{\infty}\exp\!\left(-\frac{x^2}{2\sigma^2}\right)\,dx
+=\sigma\int_{-\infty}^{\infty} e^{-t^2/2}\,dt.
+\end{equation}
+记
+\begin{equation}
+I=\int_{-\infty}^{\infty} e^{-t^2/2}\,dt,
+\end{equation}
+则上述积分为 $\sigma I$。为确定 $I$，考虑
+\begin{equation}
+\begin{aligned}
+I^2&=\left(\int_{-\infty}^{\infty}e^{-t^2/2}\,dt\right)
+     \left(\int_{-\infty}^{\infty}e^{-s^2/2}\,ds\right)\\
+&=\iint_{\mathbb{R}^2}e^{-(t^2+s^2)/2}\,dt\,ds.
+\end{aligned}
+\end{equation}
+将二维积分换为极坐标 $t=r\cos\theta,\, s=r\sin\theta$，并使用面积元
+$dt\,ds=r\,dr\,d\theta$，得到
+\begin{align}
+I^2
+&=\int_{0}^{2\pi}\int_{0}^{\infty}e^{-r^2/2}\,r\,dr\,d\theta
+=2\pi\int_{0}^{\infty}e^{-r^2/2}\,r\,dr.
+\end{align}
+再令 $u=r^2/2$（$du=r\,dr$），则
+\begin{equation}
+I^2=2\pi\int_{0}^{\infty}e^{-u}\,du
+=2\pi.
+\end{equation}
+因此 $I=\sqrt{2\pi}$。代回得
+\begin{equation}
+\int_{-\infty}^{\infty}\exp\!\left(-\frac{x^2}{2\sigma^2}\right)\,dx
+=\sigma\sqrt{2\pi}.
+\end{equation}
+从而一维归一化常数为 $c=\frac{1}{\sigma\sqrt{2\pi}}$，即
+\begin{equation}
+g_\sigma(x)=\frac{1}{\sqrt{2\pi}\sigma}
+\exp\!\left(-\frac{x^2}{2\sigma^2}\right).
+\end{equation}
+
+\subsection*{A.2 三维高斯核的构造与归一化}
+三维各向同性高斯核可写为三方向一维核的乘积（可分离性）：
+\begin{equation}
+G_\sigma(x,y,z)=g_\sigma(x)\,g_\sigma(y)\,g_\sigma(z).
+\end{equation}
+将 A.1 的 $g_\sigma$ 代入，可得
+\begin{equation}
+\begin{aligned}
+G_\sigma(x,y,z)
+&=\left(\frac{1}{\sqrt{2\pi}\sigma}\right)^3
+\exp\!\left(-\frac{x^2+y^2+z^2}{2\sigma^2}\right) \\
+&=\frac{1}{(2\pi)^{3/2}\sigma^3}
+\exp\!\left(-\frac{\|\mathbf{r}\|^2}{2\sigma^2}\right)\\
+&=\frac{1}{(2\pi\sigma^2)^{3/2}}
+\exp\!\left(-\frac{\|\mathbf{r}\|^2}{2\sigma^2}\right).
+\end{aligned}
+\end{equation}
+下面验证其满足单位质量条件。由于 $G_\sigma$ 已写成三方向乘积，因此
+\begin{equation}
+\begin{aligned}
+&\int_{\mathbb{R}^3}G_\sigma(x,y,z)\,dx\,dy\,dz\\
+=&\left(\int_{-\infty}^{\infty}g_\sigma(x)\,dx\right)
+  \left(\int_{-\infty}^{\infty}g_\sigma(y)\,dy\right)
+  \left(\int_{-\infty}^{\infty}g_\sigma(z)\,dz\right) \\
+=&1\cdot 1\cdot 1 = 1.
+\end{aligned}
+\end{equation}
+因此上述系数即为三维高斯核的归一化常数。
+在本文方法中，该归一化保证了平滑操作为加权平均：对常数场 $F(\mathbf{x})\equiv c$，
+有 $(G_\sigma*F)(\mathbf{x})\equiv c$，从而不会引入整体幅值偏移。

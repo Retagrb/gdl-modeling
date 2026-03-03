@@ -1,4 +1,4 @@
-                                     \documentclass[twocolumn]{article}
+\documentclass[twocolumn]{article}
 
 \usepackage[margin=1.25in]{geometry}
 \usepackage{fontspec}
@@ -43,6 +43,9 @@
 [\printfield{labelnumber}]}
 {\multicitedelim}
 {\usebibmacro{postnote}}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\renewcommand{\algorithmcfname}{算法}
 
 % ---- Column & line number spacing tweaks ----
 \setlength{\columnsep}{24pt}      % space between the two columns (default ~10pt)
@@ -50,9 +53,14 @@
 \setlength\linenumbersep{8pt}     % gap between line numbers and text
 
 
-%%%%%% Bibliography %%%%%%
-% Replace "sample" in the \addbibresource line below with the name of your .bib file.
-
+% %%%%%% Bibliography %%%%%%
+% % Replace "sample" in the \addbibresource line below with the name of your .bib file.
+% \usepackage[
+%   style=nejm, 
+%   citestyle=numeric-comp,
+%   sorting=none
+% ]{biblatex}
+% \addbibresource{sample.bib}
 
 %%%%%% Title %%%%%%
 % Full titles can be a maximum of 100 characters, including spaces. 
@@ -100,7 +108,7 @@
 
 \renewenvironment{abstract}{%
   \par\noindent
-  \textbf{Abstract:} % 加粗的“Abstract.”
+  \textbf{摘要:} % 加粗的“Abstract.”
   \ignorespaces
 }{%
 }
@@ -118,7 +126,7 @@
 \begin{abstract}
 气体扩散层（GDL）作为质子交换膜燃料电池（PEMFC）的核心部件，其微观孔隙结构与纤维排布决定着气、水、电传输效率，开展微观结构建模对提升电池性能具有重要理论与工程价值。本文采用分层随机生成策略构建碳纤维骨架结构：通过高斯抖动、均匀随机采样与双倾角策略，分别确定纤维的中心位置与空间取向，并结合动态加权随机选择方法，使纤维排布呈现 “乱中有序” 的分布特征。针对粘结剂（binder），基于纤维接触与近接触识别算法，分别构建共面胶膜与异面胶桥，以还原其在实际结构中的多样形态。在基础模型生成后，采用高斯平滑处理消除台阶效应与锯齿伪影，提升微观结构的真实感。算法效率层面，引入厚度轴偏移（nudge）与自适应参数收紧等防jamming策略，有效降低结构生成耗时。
 \end{abstract}
-\\\noindent\textbf{Keywords:} GDL, 随机纤维网络, 薄膜桥状 Binder, 网格生成, 建模，高斯平滑
+\\\noindent\textbf{关键词:} GDL, 随机纤维网络, 薄膜桥状 Binder, 网格生成, 建模，高斯平滑
 \vspace{0.5em}
 \noindent\hrule
 \vspace{1em}
@@ -128,7 +136,7 @@
 
 %%%%%% Main Text %%%%%%
 
-\section{Introduction}
+\section{引言}
 
 \input{introduction.tex}
 
@@ -147,7 +155,7 @@
 % \end{split}
 % \end{equation}
 
-\section{Methods}
+\section{生成方法}
 
 \subsection{\textbf{计算域与问题定义}}
 
@@ -165,23 +173,28 @@
 
 \input{smooth.tex}
 
-\section{Settings}
+\section{参数设置}
 
 \input{settings.tex}
 
-\section{Results}
+\section{结果}
 
-%\input{results.tex}
+\input{results.tex}
 
-\section{Discussion}
+\section{讨论}
 \input{discussion.tex}
 %\input{discussion.tex}
 
-\section{Conclusion}
+% \section{Conclusion}
 
-%\input{conclusion.tex}
+% %\input{conclusion.tex}
 
-\section{References}
+\section{参考文献}
+\printbibliography[heading=none]
+%\input{references.tex}
+
+\section*{附录}
+\input{appendix.tex}
 
 
 %%%%%% Figures %%%%%%
@@ -342,5 +355,6 @@
 
 % DOIs, if available, should be included for each reference.
 
-\printbibliography[heading=none]
+
+
 \end{document}

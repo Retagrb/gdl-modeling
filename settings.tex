@@ -1,31 +1,34 @@
-\subsection{GDL 随机微结构生成方法与参数设置}
-
-\subsubsection{微结构生成核心框架}
+\subsection{微结构生成核心框架}
 本文基于分层堆叠与各向异性扰动策略，开发了GDL碳纤维随机微结构生成算法，解决传统生成方法中“各向同性毛球效应”“体素硬边界锯齿化”“粘结剂（binder）散点分布”等问题。算法核心流程为：分层划分→纤维几何采样（方向+中心）→纤维体素化（支持重叠/不重叠模式）→binder 精准生成（交点胶团+毛细桥约束）→体素场平滑，最终输出0~1连续体素场（0为孔隙，1为固相），提升微结构真实性与可视化平滑度。
 
-\subsubsection{基础几何与孔隙率参数（表2）}
+\subsection{基础几何与孔隙率参数}
 微结构计算域尺寸设置为 \(I \times J \times K = 155 \times 300 \times 300\) 体素（对应物理尺度 µm 级，厚度轴自动识别为最小维度，即 \(I\) 轴），总孔隙数 \(N=I \times J \times K\)。目标总孔隙率（含纤维与binder）设定为 \(\varepsilon_{\text{target,total}} = 0.8018\)，孔隙率收敛精度 \(\Delta\varepsilon = 0.0005\)，避免生成过程中孔隙率波动过大。
 
-碳纤维几何参数参考实际GDL碳纤维特性，具体设置如表\ref{tab:basic_params} 所示。
+碳纤维几何参数参考实际GDL碳纤维特性，具体设置如表 1 所示。
 
 \begin{table}[H]
 \centering
+\begingroup
 \small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
 \begin{adjustbox}{width=\columnwidth}
-\begin{tabular}{lll}
+\begin{tabular}{p{2.2cm}p{3.0cm}p{3.2cm}}
 \toprule
 \textbf{符号/名称} & \textbf{含义} & \textbf{典型取值/范围} \\
 \midrule
 \(I,J,K\) & 体素域尺寸 & \(155 \times 300 \times 300\) \\
-\(r_{\text{fiber}}\) & 纤维半径（体素） & 3.5 \\
-\(L_{\text{min}}, L_{\text{max}}\) & 纤维长度范围 & 140.0，320.0 \\
+\(r\) & 纤维半径（体素） & 3.5 \\
+\(l_{\text{min}}, l_{\text{max}}\) & 纤维长度范围（体素） & 140.0，320.0 \\
 \texttt{fiber\_end\_mode} & 端点处理方式 & \texttt{clipped} \\
 \texttt{max\_fibers} & 纤维生成上限 & 50000 根 \\
 \(\varepsilon_{\text{target,total}}\) & 目标总孔隙率 & 0.8018 \\
 \(\Delta\varepsilon\) & 孔隙率收敛精度 & 0.0005 \\
+$\text{max\_tries}$ & 最大尝试次数（防止无限循环） & 依具体实现设定\\
 \bottomrule
 \end{tabular}
 \end{adjustbox}
+\endgroup
 \caption{基础几何与孔隙率参数}
 \label{tab:basic_params}
 \end{table}
@@ -34,28 +37,40 @@
 \hspace{2em}纤维长度采用长纤维裁剪模式（\texttt{clipped}），该模式先生成长纤维中心线再裁剪至计算域，使纤维端点主要分布在计算域边界，更贴近真实GDL子区域截取特征。
 \par}
 % 修正后的表4：自适应列宽 + 限制总宽度 + 自动换行
-\subsection{分层与各向异性参数（表3）}
-为模拟GDL“分层堆叠”的宏观特征，沿厚度轴（$I$ 轴）划分分层数 $n_{\text{layers}}$，分层厚度 $h_{\text{layer}} = \max(4.0 \times r_{\text{fiber}}, 1.0)$ 体素，最终分层数取 $\max(3, \text{round}(\text{thickness}/h_{\text{layer}}))$（至少3层保证分层效果）。层内纤维中心在厚度轴方向的扰动（jitter）设为 $0.35 \times h_{\text{layer}}$，平衡分层规整性与真实随机性。
+\subsection{分层与各向异性参数}
+为模拟GDL“分层堆叠”的宏观特征，沿厚度轴（$I$ 轴）划分分层数 $n_{\mathrm{layer}}$，分层厚度 $h_{\text{layer}} = \max(4.0 \times r, 1.0)= \max(4.0 \times 3.5, 1.0) = 14.0$ 体素，最终分层数取 $n_{\text{layer}} = \max(3, \text{round}(K_{\text{TP}} / h_{\text{layer}})) = \max(3, \text{round}(155 / 14.0)) = 11$ （至少3层保证分层效果）。层内纤维中心在厚度轴方向的扰动（jitter）设为 $0.35 \times h_{\text{layer}} = 0.35 \times 14.0 = 4.90$，平衡分层规整性与真实随机性。
 
-各向异性扰动参数控制纤维方向的“乱中有序”，具体设置如表 \ref{tab:anisotropic_params} 所示。
+各向异性扰动参数控制纤维方向的“乱中有序”，具体设置如表 2 所示。
 \begin{table}[H]
 \centering
-\Huge
+\begingroup
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
 \begin{adjustbox}{width=\columnwidth}
-\begin{tabular}{lll}
+\begin{tabular}{p{2.2cm}p{3.0cm}p{3.2cm}}
 \toprule
 \textbf{符号/名称} & \textbf{含义} & \textbf{取值/范围} \\
 \midrule
-$n_{\text{layers}}$ & 分层数 & $\max(3, \text{round}(\text{thickness}/h_{\text{layer}}))$ \\
-$\sigma_z$ (jitter) & 层内厚度方向抖动 & $0.35 \times h_{\text{layer}}$ \\
-$\sigma_{\alpha}$ & 面内角度离散度 & $55.0^\circ$ \\
-$\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & $\sigma_{\beta}=4.0^\circ,\ \beta_{\max}=10.0^\circ$ \\
-相邻层方向步长 & 层间方向变化步长 & $20^\circ \text{（随机游走）}$ \\
+% $n_{\text{layers}}$ & 分层数 & $\max(3, \text{round}(\text{thickness}/h_{\text{layer}}))$ \\
+% $\sigma_z$ (jitter) & 层内厚度方向抖动 & $0.35 \times h_{\text{layer}}$ \\
+% $\sigma_{\alpha}$ & 面内角度离散度 & $55.0^\circ$ \\
+% $\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & $\sigma_{\beta}=4.0^\circ,\ \beta_{\max}=10.0^\circ$ \\
+% 相邻层方向步长 & 层间方向变化步长 & $20^\circ \text{（随机游走）}$ \\
+$n_{\mathrm{layer}}$& 厚度方向分层数 & $\max(3, \text{round}(K_{\text{TP}} / h_{\text{layer}})) = 11$ \\
+$\sigma_z$ (jitter) & 层内厚度方向中心抖动（高斯分布标准差） & $0.35 \times h_{\text{layer}} = 4.90$ 体素 \\
+$\mu_{\alpha}^{(m)}$ & 第$m$层平均主方向（面内） & 随层数缓慢变化（随机游走），相邻层步长$20^\circ$ \\
+$\sigma_{\alpha}$ & 面内角度离散度（层内“凌乱”程度） & $55.0^\circ$ \\
+$\alpha_{\text{max}}$ & 面内最大偏转角（截断高斯约束） & $60^\circ$ \\
+$\sigma_{\beta}$ & 离层倾角扰动标准差 & $4.0^\circ$ \\
+$\beta_{\text{max}}$ & 离层倾角硬截断阈值 & $10.0^\circ$（由$L_{\text{min}} \sin\beta \leq K_{\text{TP}}$ 推导） \\
+相邻层方向步长 & 层间主方向变化步长 & $20^\circ$（随机游走） \\
 \bottomrule
 \end{tabular}
 \end{adjustbox}
 \caption{分层与各向异性参数}
 \label{tab:anisotropic_params}
+\endgroup
 \end{table}
 
 {\raggedright
@@ -63,67 +78,125 @@ $\sigma_{\beta}, \beta_{\max}$ & 离层倾角控制 & $\sigma_{\beta}=4.0^\circ,
 \par}
 
 
-\subsection{binder 生成核心参数（表4）}
+\subsection{binder 生成核心参数}
 {\raggedright
-\hspace{2em}pacbinder 体积分数（相对总体）设定为 \(\phi_{\text{binder,total}} = 1.2\%\)（0.012），参考 GDL 中 binder 占固相体积的典型比例，具体参数如表 \ref{tab:binder_params} 所示。
+\hspace{2em}本研究binder 体积分数（相对总体）设定为 \(\phi_{\text{b,total}} = 1.2\%\)（0.012），参考 GDL 中 binder 占固相体积的典型比例，具体参数如表 3 所示。
 \par}
 \begin{table}[H]
 \centering
+\begingroup
 \small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
 \begin{adjustbox}{width=\columnwidth}
-\begin{tabular}{lll}
-\toprule a
+\begin{tabular}{p{2.2cm}p{3.0cm}p{3.2cm}}
+\toprule
 \textbf{符号/名称} & \textbf{含义} & \textbf{取值/范围} \\
 \midrule
-\(\phi_{\text{binder,total}}\) & binder体积分数 & 0.012 \\
-\(g_{\text{contact}}\) & 接触间隙 & \(0.35 \times r_{\text{fiber}}\) \\
-\(r_{\text{binder,blob}}\) & 初始胶团半径 & \(1.05 \times r_{\text{fiber}}\) \\
-\(d_{\text{user}}\) & 毛细桥连线长度 & \(2.65 \times r_{\text{fiber}}\) \\
-\(\text{d}t, \text{d}s\) & 采样密度（体素） & 0.65，0.75 \\
-约束条件 & 体素范围约束 & 纤维间隙slab区域 \\
+% \(\phi_{\text{binder,total}}\) & binder体积分数 & 0.012 \\
+% \(g_{\text{contact}}\) & 接触间隙 & \(0.35 \times r_{\text{fiber}}\) \\
+% \(r_{\text{binder,blob}}\) & 初始胶团半径 & \(1.05 \times r_{\text{fiber}}\) \\
+% \(d_{\text{user}}\) & 毛细桥连线长度 & \(2.65 \times r_{\text{fiber}}\) \\
+% \(\text{d}t, \text{d}s\) & 采样密度（体素） & 0.65，0.75 \\
+% 约束条件 & 体素范围约束 & 纤维间隙slab区域 \\
+$\phi_{\text{b,total}}$ & Binder总体积分数（相对计算域） & $0.012$（$1.2\%$） \\
+$\delta_{\text{b}}$ & Binder体积分数容差（停止阈值） & $10^{-4}$ \\
+$d_c$ & 纤维接触/近接触判定阈值 & $2r + \delta = 7.0 + 1.225 = 8.225$ 体素 \\
+$\delta$ & 近接触容许间隙 & $0.35 \times r = 1.225$ 体素 \\
+% $R_0$（$r_{\text{binder,blob}}$） & Binder初始胶团基础厚度 & $1.05 \times r_{\text{fiber}} = 3.675$ 体素 \\
+% $\ell$（$d_{\text{user}}$） & 毛细桥轴向延伸半长 & $2.65 \times r_{\text{fiber}} = 9.275$ 体素 \\
+$\theta_0$ & Binder形态分类阈值（共面/异面） & $30^\circ$（$\theta_{ij} \leq 30^\circ$ 为共面） \\
+$R_{\text{mid}}$ & Binder中心区域加厚幅度 & $1.5 \times r = 5.25$ 体素 \\
+$R_{\text{conc}}$ & Binder边缘凹弧控制参数 & $0.8 \times r = 2.8$ 体素 \\
+$d_t, d_s$ & 体素化采样密度（体素） & $0.65, 0.75$ \\
+约束条件 & Binder生成范围约束 & 纤维间隙slab区域（投影范围$[-\text{margin}, g+\text{margin}]$） \\
 \bottomrule
 \end{tabular}
 \end{adjustbox}
+\endgroup
 \caption{binder 生成核心参数}
 \label{tab:binder_params}
 \end{table}
 
 {\raggedright
-\hspace{2em}binder 生成时，仅在两根纤维“夹缝区”生成，体素需同时满足到两根纤维中心线距离 \(\leq \text{thr}\)（\(\text{thr}^2\) 为距离平方阈值），且限制在纤维间隙的slab区域内（投影范围 \([-{\text{margin}}, g+{\text{margin}}]\)），避免binder在单纤维表面形成凸起，保证胶桥的凹形圆角特征。
+\hspace{2em}Binder生成时，仅在两根纤维“夹缝区”生成，体素需同时满足到两根纤维中心线距离 $\leq \text{thr}$（$\text{thr}^2$ 为距离平方阈值），且限制在纤维间隙的slab区域内，避免binder在单纤维表面形成凸起，保证胶桥的凹形圆角特征。共面纤维接触对采用较大延伸尺度与扁平弯月面，异面纤维接触对采用局部延伸尺度与强曲率弯月面，实现胶膜与胶桥的差异化形态。
 \par}
 
-\subsection{数值计算与优化参数（表5）}
-为提升算法效率与结果可复现性，采用多项数值优化策略，具体设置如表 \ref{tab:optimization_params} 所示。
+
+\subsection{数值计算与优化参数}
+为提升算法效率与结果可复现性，采用多项数值优化策略，具体设置如表 4 所示。
 \\
 % 修正后的表5：同样适配单栏宽度
 \begin{table}[H]
 \centering
-\begin{tabular}{p{1.8cm}p{2.7cm}p{2.5cm}}
+\begingroup
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{adjustbox}{width=\columnwidth}
+\begin{tabular}{p{2.2cm}p{3.0cm}p{3.2cm}}
 \toprule
 策略名称 & 含义 & 设置方式 \\
 \midrule
 Numba JIT 编译 & 核心几何计算加速 & 加速 point segment dist2 等函数 \\
 AABB 分箱预筛 + 微调 & 不重叠模式优化 & 降低高密度碰撞检测开销 \\
-Scipy 距离变换 & 体素平滑方式 & 生成窄过渡带（无则降级） \\
-全局随机种子 & 可复现性控制 & 42 \\
+自适应防jamming策略 & 不重叠模式参数收紧规则 & 连续失败阈值$T = 6000$；参数收紧系数$\gamma = 0.9$（$l_{\text{max}}$）、$\eta = 0.9$（$\sigma_{\beta}、\sigma_{\text{TP}}$）、$\zeta = 0.95$（$\sigma_{\alpha}$）；参数下限：$l_{\text{max}}^{\text{min}} = 100$ 体素，$\sigma_{\beta}^{\text{min}} = 1.0^\circ$，$\sigma_{\text{TP}}^{\text{min}} = 2.0$ 体素 \\
+全局随机种子 & 生成结果可复现性控制 & 42（固定种子保证重复验证） \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
+\endgroup
 \caption{数值计算与优化参数}
 \label{tab:optimization_params}
 \end{table}
 
-采用Numba即时编译（JIT）加速点-线段距离平方（\texttt{point\_segment\_dist2}）、线段-线段最近距离（\texttt{\_segseg\_closest}）等核心几何计算函数，可显著提升体素化效率；不重叠模式下采用轴对齐包围盒（AABB）分箱预筛+厚度轴微调（nudge）策略，能有效降低高密度下纤维碰撞检测的计算开销；体素平滑依赖Scipy的距离变换（\texttt{ndimage}）生成窄过渡带，若无Scipy则降级为无平滑模式，输出连续体素场替代传统0/1/2硬边界，提升Tecplot等值面可视化的光滑度；全局随机种子设为42，保证生成结果的可复现性。
-
+% 采用Numba即时编译（JIT）加速点-线段距离平方（\texttt{point\_segment\_dist2}）、线段-线段最近距离（\texttt{\_segseg\_closest}）等核心几何计算函数，可显著提升体素化效率；不重叠模式下采用轴对齐包围盒（AABB）分箱预筛+厚度轴微调（nudge）策略，能有效降低高密度下纤维碰撞检测的计算开销；体素平滑依赖Scipy的距离变换（\texttt{ndimage}）生成窄过渡带，若无Scipy则降级为无平滑模式，输出连续体素场替代传统0/1/2硬边界，提升Tecplot等值面可视化的光滑度；全局随机种子设为42，保证生成结果的可复现性。
+采用Numba即时编译（JIT）可显著提升体素化效率；AABB分箱预筛+厚度轴微调策略，能将碰撞检测时间复杂度从 $O(N_f^2)$ 降至 $O(N_f \cdot |N|)$（$|N| \ll N_f$）；自适应防jamming策略通过动态收紧参数，有效缓解不重叠模式下的采样失败问题。
 \urlstyle{same}
-\subsection{输出设置（表6）}
+
+\subsection{平滑处理参数}
+为缓解二值体素场的“锯齿伪影”（staircase artifacts），提升可视化效果，采用三维高斯平滑算法对纤维相、binder相二值场进行软边界转换，平滑处理仅用于可视化（不改变孔隙率、体积分数等物理统计结果），具体参数设置如表 5 所示：
+
+\begin{table}[H]
+\centering
+\begingroup
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{adjustbox}{width=\columnwidth}
+\begin{tabular}{p{2.2cm}p{3.0cm}p{3.2cm}}
+\toprule
+符号/名称 & 含义 & 取值/范围 \\
+\midrule
+% $\sigma_{\text{smooth}}$ & 主高斯平滑核标准差（控制过渡带宽度） & $0.8$ 体素 \\
+$\sigma_{\text{post}}$ & 二次平滑核标准差（精细优化） & $0.3$ 体素 \\
+边界处理方式 & 高斯滤波边界效应抑制 & 邻边界扩展（nearest，边界复制） \\
+归一化处理 & 等值面阈值稳定性保证 & 峰值归一化（$F(x) = F(x)/\max(F)$，$H(x) = H(x)/\max(H)$） \\
+可视化等值面阈值 & Tecplot显示阈值 & $\text{Iso} = 0.5$（纤维相、binder相、Flag场） \\
+Tecplot渲染设置 & 平滑渲染优化 & 启用Allow Quads + Gouraud/Phong光照 \\
+合成显示场 & 整体结构预览 & $\text{Flag} = \max(\tilde{S}(x), \tilde{B}(x))$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\endgroup
+\caption{平滑处理参数}
+\label{tab:smoothing_params}
+\end{table}
+
+平滑后的连续场 $\tilde{S}(x)$（纤维相）、$\tilde{B}(x)$（binder相）取值范围为 $[0,1]$，在固-孔界面形成亚体素过渡带，合成显示场 $\text{Flag} = \max(\tilde{S}(x), \tilde{B}(x))$ 用于整体结构预览。二次平滑（$\sigma_{\text{post}} = 0.3$）可进一步抑制局部细节的锯齿感，且不影响物理统计结果。
+
+\subsection{输出设置}
 {\raggedright
-\hspace{2em}算法生成4类微结构文件（\texttt{gdl\_layered\-\_opt\-\{opt\}.dat}），覆盖“重叠/不重叠”与“有/无 binder”的组合，具体如表 \ref{tab:output_files} 所示。
+\hspace{2em}算法生成4类微结构文件（\texttt{gdl\_layered\-\_opt\-\{opt\}.dat}），覆盖“重叠/不重叠”与“有/无 binder”的组合，具体如表 6 所示。
 \par}
 
 \begin{table}[H]
 \centering
+\begingroup
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
 \begin{adjustbox}{width=\columnwidth}
-\Large
 \begin{tabular}{lll}
 \toprule
 \textbf{文件编号} & \textbf{文件名} & \textbf{组合模式} \\
@@ -135,9 +208,10 @@ opt=4 & \path{gdl_layered_opt4.dat} & 可重叠+有 binder \\
 \bottomrule
 \end{tabular}
 \end{adjustbox}
+\endgroup
 \caption{输出文件设置}
 \label{tab:output_files}
 \end{table}
 {\raggedright
-\hspace{2em}所有文件均输出0~1连续体素场，可直接导入Tecplot、ParaView等可视化软件进行后处理，或用于孔隙尺度流动/传质模拟。
+\hspace{2em}所有输出文件均包含三类核心数据：二值体素场（$S(x), B(x), P(x)$，用于物理统计）、连续可视化场（$\tilde{S}(x), \tilde{B}(x), \text{Flag}$，用于平滑显示），可直接导入Tecplot、ParaView等可视化软件进行后处理，或用于孔隙尺度流动/传质模拟。
 \par}

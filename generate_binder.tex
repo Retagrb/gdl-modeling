@@ -2,7 +2,7 @@
 
 在纤维骨架生成完成后（纤维相几何分布 $S(\textbf x)$ 已固定且不再发生改变）。在此基础上，本文进一步开展 binder 相 $B(\textbf x)$ 的重构于生成，以表征粘连剂在纤维接触/近接触区域富集形成胶桥/胶膜的微结构特征。生成过程中，通过控制粘结剂的沉积位置、分布形态与填充范围，在保证物理合理性的前提下，使最终 binder 体积分数 $\phi_{b}$ 以及总体孔隙率 $\varepsilon$ 收敛至预设的目标值 $\phi_{b,\textbf{target}}$，从而实现对气体扩散层多相微结构的可控、定量重建，为后续输运性能分析提供符合真实材料特征的几何模型。
 
-总体上，binder 生成遵循“\emph{接触识别-形态分类-局部几何构造-体积分数校准}”的流程：首先在纤维几何集合中识别近接触纤维对并确定最近点对作为锚点；随后根据两纤维相对取向（共面/异面）构造不同形态的三维局部 binder 体积；将其体素化写入 $B(\textbf x)$ 并保持与纤维互斥（$B(\textbf x) \cdot S(\textbf x) = 0$）；最后通过调整局部几何或迭代生成，使 $\phi_{b}$ 逼近目标 $\phi_{b,\textbf{target}}$。
+总体上，binder 生成遵循“\emph{接触识别-形态分类-局部几何构造-体积分数校准}”的流程：首先在纤维几何集合中识别近接触纤维对并确定最近点对作为锚点；随后根据两纤维相对取向（共面胶桥/异面胶膜的区别）构造不同形态的三维局部 binder 体积；接着将其体素化写入 $B(\textbf x)$ 并保持与纤维互斥（$B(\textbf x) \cdot S(\textbf x) = 0$）；最后通过调整局部几何或迭代生成，使 $\phi_{b}$ 逼近目标 $\phi_{b,\textbf{target}}$，并满足整体孔隙率约束 $|\varepsilon - \varepsilon_{\textbf{target}}| \le \delta_{\varepsilon}$。
 
 \noindent\mbox{流程摘要如下：}
 \begin{algorithm}[t]
@@ -46,28 +46,30 @@ $\mathcal{C}\leftarrow \{(i,j): d([a_i,b_i],[a_j,b_j])\le d_c\}$，并记录 $(\
 
 binder体素场 $S(x)$ 与纤维几何集合 $\mathcal{F}$ 为输入，给定接触阈值 $d_c$、形态分类阈值 $\theta_0$ 以及几何参数 $\Theta$，输出满足互斥约束 $B(x)\cdot S(x)=0$binder der 体素场 $B(x)$，并使 $\phi_b$ 接近目标 $\phi_b^\star$。
 
+与粘连剂 binder 生成算法相关的关键参数详见 Settings 中表 3。
 
 \subsubsection{\textbf{纤维接触/近接触识别}}
 
 在气体扩散层（GDL）中，粘结剂（binder）是一种基于碳的固相物质，它通过在纤维间形成结构键维持材料结构完整性，其在碳纸制造中由可碳化热固性树脂经碳化形成，主要分布在纤维接触/近接触处的高表面积区域，为了拟合真实的 binder 分布特征，首先要从纤维集合里找到候选接触对。
 
 记第 $i,j$ 根纤维的中心轴线分别为 $[a_i,b_i]$ 和 $[a_j,b_j]$，定义两线段的最小距离为
-\[
+\begin{equation}
 \begin{aligned}
 d_{i,j} & = d([a_i,b_i],[a_j,b_j]) \\
 & = \min_{\textbf A_{ij}\in[a_i,b_i], \textbf B_{ij}\in[a_j,b_j]} \|\textbf A_{ij}-\textbf B_{ij}\|
 \end{aligned}
-\]
+,
+\end{equation}
 当 $d_{i,j} \le d_c$ 时，认为两根纤维满足接触/近接触条件，即
-\[
-(i,j)\in\mathcal{C} \quad \Longleftrightarrow \quad d_{ij}\le d_c.
-\]
+\begin{equation}
+(i,j)\in\mathcal{C} \quad \Longleftrightarrow \quad d_{ij}\le d_c,
+\end{equation}
 其中 $\mathcal{C}$ 表示候选接触对集合。除距离判定外，本文同时记录实现最小距离的最近点对 $(\textbf A_{ij},\textbf B_{ij})$，其中 $\textbf A_{ij}\in[a_i,b_i]$，$\textbf B_{ij}\in[a_j,b_j]$，用于后续 binder 的局部几何构造。
 
 考虑如何选取合适的阈值 $d_c$。本文将纤维建模为半径为 $r$ 的圆柱体，因此当 $d_{ij} \le 2r$ 时，两根纤维存在实际接触或重叠。由于粘连剂具有一定跨越能力，本文允许在小间隙内形成胶桥，将近接触阈值取为
-\[
-d_c = 2r + \delta
-\]
+\begin{equation}
+d_c = 2r + \delta,
+\end{equation}
 其中 $\delta \ge 0$ 表示容许间隙参数，用于控制 binder 生成的“跨缝”尺度。
 
 直接对所有纤维对进行距离计算的复杂度为 $O({N_f}^2)$。为降低计算成本，本文在实现中结合厚度分箱与 AABB 预筛对候选对进行快速过滤，仅对潜在相邻纤维对执行精确的线段最短距离计算。
@@ -77,19 +79,20 @@ d_c = 2r + \delta
 在实际的 GDL 中，binder 在不同几何接触情形下呈现出不同的宏观形态：当两根纤维在同一层平面内近似共面时，binder 更倾向沿接触区域铺展形成胶膜状结构；当两根纤维以较大夹角交叉或跨层接近时，binder 更倾向在局部形成胶桥状结构。为了在生成式模型中体现上述差异，本文对候选接触对进行形态分类，并在后续几何构造中采用不同参数化描述。
 
 我们考虑基于两根纤维的方向夹角作为分类指标。对于前文中得到的候选接触对 $(i,j)\in\mathcal{C}$，记两根纤维的单位方向向量为 $\textbf u_i$ 和 $\textbf u_j$，则它们的夹角 $\theta_{ij}$ 定义为
-\[
-\theta_{ij} = \arccos\!\left(\left|\textbf u_i\cdot \textbf u_j\right|\right)\in\left[0,\dfrac{\pi}{2}\right]
-\]
+\begin{equation}
+\theta_{ij} = \arccos\!\left(\left|\textbf u_i\cdot \textbf u_j\right|\right)\in\left[0,\dfrac{\pi}{2}\right],
+\end{equation}
 其中绝对值用于消除方向符号（$\textbf u$ 和 $-\textbf u$ 代表同一纤维方向）。
 
 设定一个夹角阈值 $\theta_0$，我们将接触对分为两类：
-\[
+\begin{equation}
 T_{ij} = 
 \begin{cases}
 \text{coplanar}, & \theta_{ij}\le \theta_0,\\
 \text{skew}, & \theta_{ij}>\theta_0.
 \end{cases}
-\]
+,
+\end{equation}
 其中 \texttt{coplanar} 表示共面胶模型，\texttt{skew} 表示异面桥模型。若实现中记录了纤维所属层 $m_i$，则也可结合层信息进行分类，例如仅当 $|m_i - m_j| \le 1$ 时才视为共面型，以增强对跨层接触的鲁棒性。
 
 通过以上分类，我们在后续的 binder 生成过程中针对不同类型的接触对采用不同的几何构造参数：共面型采用更大的沿纤维延伸尺度与更扁平的弯月面厚度分布，以模拟胶膜状结构；异面型采用更局部的延伸尺度与更强的弯月面曲率，以模拟胶桥状结构。该分类使 binder 形态从共面胶膜到异面胶桥可连续过渡，避免采用完全割裂的两套模型。
@@ -97,75 +100,78 @@ T_{ij} =
 \subsubsection{\textbf{局部几何构造与体素化写入}}
 
 上文中提到，接触对 $(i,j)\in\mathcal{C}$ 的最近点对为 $(\textbf A_{ij},\textbf B_{ij})$，我们以此为锚点，定义粘连剂的桥接方向：
-\[
-\textbf{n}_{ij} = \dfrac{\textbf B_{ij}-\textbf A_{ij}}{\|\textbf B_{ij}-\textbf A_{ij}\|}
-\]
+\begin{equation}
+\textbf{n}_{ij} = \dfrac{\textbf B_{ij}-\textbf A_{ij}}{\|\textbf B_{ij}-\textbf A_{ij}\|},
+\end{equation}
 该方向刻画两纤维间的最近连接法昂想，为后续局部胶桥构造提供参考。
 
 考虑对于每个接触对 $(i,j)$ 如何构建几何上合理的 binder 生成的范围。我们首先选择一个轴向延伸半长 $\ell$（span），对共面/异面可不同：
-\[
+\begin{equation}
 \ell = 
 \begin{cases}
 \ell_{\text{coplanar}}, & T_{ij}=\text{coplanar},\\
 \ell_{\text{skew}}, & T_{ij}=\text{skew}.
 \end{cases}
-\]
+,
+\end{equation}
 一般来说，共面型通常采用较大的 $\ell$ 以模拟胶膜沿接触区域铺展，异面型采用较小的 $\ell$ 以模拟局部胶桥聚集。以 $\textbf A_{ij}$ 和 $\textbf B_{ij}$ 为中心点，沿两根纤维轴向对称方向分别延伸 $\ell$，得到四个角点
-\[
+\begin{equation}
 \begin{cases}
     \textbf P_1 = \textbf A_{ij} - \ell \textbf u_i \\
     \textbf P_2 = \textbf A_{ij} + \ell \textbf u_i,\\
     \textbf Q_1 = \textbf B_{ij} - \ell \textbf u_j \\
     \textbf Q_2 = \textbf B_{ij} + \ell \textbf u_j
 \end{cases}
-\]
+,
+\end{equation}
 这四点构成了一个扭曲四边形“胶桥骨架”，即一个二维上的桥接中心曲面。
 
 为在两根纤维之间构造连续的局部 binder 几何，本文采用参数化曲面（patch）描述桥接区域的中间面。引入二维参数 $(s,t) \in [0,1]^2$，并定义映射
-\[
+\begin{equation}
 G:[0,1]^2\rightarrow \mathbb{R}^3,\qquad (s,t)\mapsto G(s,t),
-\]
+\end{equation}
 其中 $G(s,t)$ 给出桥接面片在三维空间中的坐标点。假设 $\textbf P_1,\textbf P_2,\textbf Q_1,\textbf Q_2 \in \mathbb{R}^3$，本文采用\textbf{双线性插值（bilinear patch）}\cite{赵煌2012双线性插值算法的优化及其应用}构造桥接面片：
-\[
-G(s,t) = (1 - s)(1 - t)\textbf P_1 + s(1 - t)\textbf P_2 + (1 - s)t \textbf Q_1 + st \textbf Q_2
-\]
+\begin{equation}
+G(s,t) = (1 - s)(1 - t)\textbf P_1 + s(1 - t)\textbf P_2 + (1 - s)t \textbf Q_1 + st \textbf Q_2,
+\end{equation}
 该构造满足：
-\[
+\begin{equation}
 \begin{cases}
 G(0,0) = \textbf P_1\\
 G(1,0) = \textbf P_2\\
 G(0,1) = \textbf Q_1\\
 G(1,1) = \textbf Q_2
 \end{cases}
-\]
+,
+\end{equation}
 从而将单位参数域的四个角与三维空间中的四个角点一一对应，构建了三维空间内 binder 分布的连续曲面描述。
 
 上述 $G(s,t)$ 定义了一个理想化的桥接面片，但实际 binder 具有一定厚度和体积。为此，本文在参数域 $[0,1]^2$ 上定义一个厚度函数：
-\[
+\begin{equation}
 R:[0,1]^2\rightarrow \mathbb{R}_{+},\qquad (s,t)\mapsto R(s,t),
-\]
+\end{equation}
 其中 $R(s,t)$ 表示 $G(s,t)$ 处 binder 的局部“加厚尺度”。直观上，可将 binder 体积视为对面片 $G(s,t)$ 的管状加厚（tubular thickening）：在每个参数点 $(s,t)$ 处，以 $G(s,t)$ 为中心生成半径为 $R(s,t)$ 的局部邻域并取其并集，从而得到三维 binder 体积
-\[
+\begin{equation}
 \mathcal{V}=\bigcup_{(s,t)\in[0,1]^2}\left\{x\in\mathbb{R}^3:\ \|x-G(s,t)\|_2\le R(s,t)\right\}.
-\]
+\end{equation}
 也就是把桥接面片 $G(s,t)$ 上的每一个点，当作一个球心，生成一个半径为 $R(s,t)$ 的球体，然后将这些球体的并集作为 binder 的三维几何表示。我们定义厚度函数的计算方式为：
-\[
-R(s,t) = R_0 + R_{\textbf{mid}} \sin(\pi s) \sin(\pi t) - R_{\textbf{conc}} \cdot f(s,t)
-\]
+\begin{equation}
+R(s,t) = R_0 + R_{\textbf{mid}} \sin(\pi s) \sin(\pi t) - R_{\textbf{conc}} \cdot f(s,t),
+\end{equation}
 其中 $R_0$ 表示基础厚度，保证桥接区不出现“断裂/空洞”；$R_{\textbf{mid}}$ 表示沿桥接面片中心区域的加厚幅度，通过乘上双正弦函数来精确模拟 binder 在接触区域的富集特征；$R_{\textbf{conc}}$ 表示对桥接面片边缘的凹弧控制，模拟 binder 在边缘区域的收缩特征。为了得到合理的 binder 凹弧形态，我们定义一个边缘约束函数 $f(s,t)$：
-\[
-f(s,t) = \sin(\pi s) \sin(\pi t)
-\]
+\begin{equation}
+f(s,t) = \sin(\pi s) \sin(\pi t),
+\end{equation}
 则整个函数变为
-\[
-R(s,t) = R_0 + (R_{\textbf{mid}} - R_{\textbf{conc}}) \sin(\pi s) \sin(\pi t)
-\]
+\begin{equation}
+R(s,t) = R_0 + (R_{\textbf{mid}} - R_{\textbf{conc}}) \sin(\pi s) \sin(\pi t),
+\end{equation}
 通过调整 $R_{\textbf{mid}}$ 和 $R_{\textbf{conc}}$ 的相对大小，可以控制 binder 在中心区域的加厚程度与在边缘区域的凹弧程度，从而模拟出更符合实际 GDL 中 binder 形态的桥接结构。
 
 得到 binder 的三维几何表示 $\mathcal{V}$ 后，接下来需要将其体素化写入 binder 体素场 $B(\textbf x)$ 中。记对接触对 $(i,j)$ 构造的 binder 体积为 $\mathcal{V}_{ij}$，对体素中心点 $\textbf p_x$，若 $\textbf p_x \in \mathcal{V}_{ij}$ 则将 $B(\textbf x)$ 置为 1。为保证三相互斥，写入时加入以下强制约束
-\[
-B(\textbf x) \leftarrow B(\textbf x) \cdot (1 - S(\textbf x))
-\]
+\begin{equation}
+B(\textbf x) \leftarrow B(\textbf x) \cdot (1 - S(\textbf x)),
+\end{equation}
 即 binder 不占据任何已被纤维占据的体素。同时为了降低计算成本，体素化仅在 $\mathcal{V}_{ij}$ 的轴对齐包围盒（AABB）范围内进行，避免对整个计算域进行无效遍历。
 
 至此，我们完成了基于纤维接触几何的 binder 生成的核心流程：从接触识别到形态分类，再到局部几何构造与体素化写入，最终得到满足预设 binder 体积分数目标的 binder 体素场 $B(\textbf x)$。
@@ -173,23 +179,23 @@ B(\textbf x) \leftarrow B(\textbf x) \cdot (1 - S(\textbf x))
 \subsubsection{\textbf{体积分数匹配与停止准则}}
 
 binder 生成以体积分数约束为目标，其体积分数为
-\[
-\phi_b = \frac{1}{N} \sum_{\textbf x \in \Omega} B(\textbf x)
-\]
+\begin{equation}
+\phi_b = \frac{1}{N} \sum_{\textbf x \in \Omega} B(\textbf x),
+\end{equation}
 其中 $N = |\Omega|$ 是计算域内的总体素数。给定目标体积分数 $\phi_{b,\textbf{target}}$，对应的目标 binder 体素数为
-\[
-N_b^{\star} = \phi_{b,\textbf{target}} \cdot N
-\]
+\begin{equation}
+N_b^{\star} = \phi_{b,\textbf{target}} \cdot N,
+\end{equation}
 在生成的过程中，本文已写入的 binder 体素数
-\[
-N_b = \sum_{\textbf x \in \Omega} B(\textbf x)
-\]
+\begin{equation}
+N_b = \sum_{\textbf x \in \Omega} B(\textbf x),
+\end{equation}
 并据此更新当前体积分数 $\phi_b = N_b / N$。
 
 当 $N_b \ge N_b^{\star}$ 时，认为已达到或超过目标体积分数，此时停止生成过程，也即
-\[
-|\phi_b - \phi_{b,\textbf{target}}| \le \delta_b
-\]
+\begin{equation}
+|\phi_b - \phi_{b,\textbf{target}}| \le \delta_b,
+\end{equation}
 成立时，停止 binder 生成并输出 $B(\textbf x)$。其中 $\delta_b$ 是一个小的容差参数，用于控制体积分数匹配的精度。为避免无限迭代，算法同时设置候选接触对遍历上限（或最大迭代次数）；当候选接触对集合 $\mathcal{C}$ 被遍历完成仍未达到目标时，报告当前可实现的 $\phi_b$ 并终止。
 
 由于 binder 以离散体素写入，$N_b$ 可能出现超过 $N_b^{\star}$ 的情况。此时本文对多余的 binder 体素进行裁剪，使 $N_b$ 回到目标值（例如在不破坏局部连通性的前提下随机删除或按优先级删除）。
@@ -199,11 +205,11 @@ N_b = \sum_{\textbf x \in \Omega} B(\textbf x)
 
 为便于后续仿真与可视化，本文在输出数据中同时提供离散相状态函数与用于平滑显示的连续场。具体地，纤维相与 binder 相分别由二值体素场 $S(\textbf x)$ 和 $B(\textbf x)$ 表示，孔隙相由 $P(\textbf x) = 1 - S(\textbf x) - B(\textbf x)$ 表示。上述二值场用于体积分数/孔隙率激素按及作为后续数值模拟的相区分依据。
 
-与此同时，为了降低体素边界带来的锯齿感并获得更平滑的等值面显示，本文额外构造用于可视化的连续场 $\texttt{Fiber}$ 与 $\texttt{Binder}$，取值范围为 $[0,1]$，其可由二值相场经局部平滑/软边界映射得到（具体详见 2.4 节）。并定义合成显示场
-\[
-\texttt{Flag}=\max(\texttt{Fiber},\texttt{Binder})
-\]
-用于整体结构的快速预览。需要指出的是，$\texttt{Fiber}$ 和 $\texttt{Binder}$ 仅用于可视化展示，不改变 $S(\textbf x)$ 和 $B(\textbf x)$ 的体积分数统计结果。
+与此同时，为了降低体素边界带来的锯齿感并获得更平滑的等值面显示，本文额外构造用于可视化的连续场 $\tilde{S}(\textbf{x})$ 和 $\tilde{B}(\textbf{x})$，取值范围为 $[0,1]$，其可由二值相场经局部平滑/软边界映射得到（具体详见 2.4 节）。并定义合成显示场
+\begin{equation}
+\texttt{Flag}=\max(\tilde{S}(\textbf{x}),\tilde{B}(\textbf{x})),
+\end{equation}
+用于整体结构的快速预览。
 
 在 Tecplot 中，为分别显示纤维与 binder，建议对 \texttt{Fiber} 与 \texttt{Binder} 分别绘制等值面（Iso-surface），并采用统一阈值 $\mathrm{Iso}=0.5$；同时可选用 \texttt{Allow Quads (Smoother Contours)} 与 Gouraud/Phong 光照以进一步减弱体素台阶带来的视觉伪影。
 
